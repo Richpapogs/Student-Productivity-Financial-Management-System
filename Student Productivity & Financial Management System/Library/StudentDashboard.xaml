@@ -1,0 +1,128 @@
+﻿<Window x:Class="Library.Pages.StudentDashboard"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Student Dashboard" Height="600" Width="950"
+        WindowStartupLocation="CenterScreen"
+        Background="#0F172A" ResizeMode="NoResize">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="69"/>
+            <RowDefinition/>
+        </Grid.RowDefinitions>
+
+        <!-- Top Header -->
+        <Border Grid.Row="0" Background="#1E293B" Padding="20">
+            <DockPanel>
+                <TextBlock Text="    Student Dashboard"
+                           Foreground="White"
+                           FontSize="20"
+                           FontWeight="Bold"
+                           DockPanel.Dock="Left" Margin="350,0,0,0"/>
+
+
+            </DockPanel>
+        </Border>
+
+        <!-- Main Body -->
+        <TabControl Grid.Row="1" x:Name="tabMain" Background="#1C2433"
+                    BorderThickness="0" Foreground="White"
+                    FontSize="14" Padding="10" Margin="10,10,10,10">
+
+            <!-- Profile Tab -->
+            <TabItem Header="Profile" Margin="8,-2,-8,1" Width="300">
+                <StackPanel Margin="20">
+                    <TextBlock Text="Student Profile" FontSize="18"
+                               FontWeight="Bold" Foreground="#00BCD4" Margin="0,0,0,10"/>
+
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="110"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Text="Student ID:" Grid.Row="0" Foreground="White" Margin="0,0,0,20"/>
+                        <TextBlock x:Name="lblID" Grid.Row="0" Grid.Column="1" Foreground="#B0E0E6" Margin="0,0,0,18" Grid.RowSpan="2"/>
+
+                        <TextBlock Text="Name:" Grid.Row="1" Foreground="White" Margin="0,0,0,20"/>
+                        <TextBlock x:Name="lblName" Grid.Row="1" Grid.Column="1" Foreground="#B0E0E6"/>
+
+                        <TextBlock Text="Course/Section:" Grid.Row="2" Foreground="White" Margin="0,0,0,19"/>
+                        <TextBlock x:Name="lblCourse" Grid.Row="2" Grid.Column="1" Foreground="#B0E0E6"/>
+
+                        <TextBlock Text="Email:" Grid.Row="3" Foreground="White" Margin="0,0,0,20"/>
+                        <TextBlock x:Name="lblEmail" Grid.Row="3" Grid.Column="1" Foreground="#B0E0E6"/>
+
+                        <TextBlock Text="Contact:" Grid.Row="4" Foreground="White"/>
+                        <TextBlock x:Name="lblContact" Grid.Row="4" Grid.Column="1" Foreground="#B0E0E6"/>
+
+                        <Button Content="Logout"
+                        Width="80"
+                        Background="#FFD40000"
+                        Foreground="White"
+                        Margin="283,206,0,-216"
+                        Click="Logout_Click"
+                        HorizontalAlignment="Left"
+                        BorderThickness="0"
+                        Cursor="Hand" Grid.Column="1" Grid.Row="4"/>
+
+                    </Grid>
+                </StackPanel>
+            </TabItem>
+
+            <!-- Borrow Tab -->
+            <TabItem Header="Borrow" Margin="13,-2,-13,1" Width="300">
+                <StackPanel Margin="20">
+                    <TextBlock Text="Borrow a Book or Board Game"
+                               FontSize="18" FontWeight="Bold" Foreground="#00BCD4" Margin="0,0,0,20"/>
+
+                    <TextBlock Text="Enter Book ID (max 2):" Foreground="White"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,5,0,15">
+                        <TextBox x:Name="txtBook1" Width="150" Margin="0,0,10,0"/>
+                        <TextBox x:Name="txtBook2" Width="150"/>
+                    </StackPanel>
+
+                    <TextBlock Text="Enter BoardGame ID (max 1):" Foreground="White"/>
+                    <TextBox x:Name="txtBoardGame" Width="150" Margin="0,5,0,15"/>
+
+                    <Button Content="Submit" Width="150" Background="#00BCD4"
+                            Foreground="White" Click="SubmitBorrow_Click"/>
+                </StackPanel>
+            </TabItem>
+
+            <!-- History Tab -->
+            <TabItem Header="History" Margin="18,-3,-18,1" Width="300">
+                <StackPanel Margin="20">
+                    <TextBlock Text="Borrow History" FontSize="18" FontWeight="Bold" Foreground="#00BCD4" Margin="0,0,0,20"/>
+                    <DataGrid x:Name="dgHistory"
+          AutoGenerateColumns="False"
+          CanUserAddRows="False"
+          IsReadOnly="True"
+          GridLinesVisibility="Horizontal"
+          HeadersVisibility="Column"
+          Background="#1C2433"
+          Foreground="Black"
+          BorderBrush="Gray"
+          FontSize="13">
+
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Record ID" Binding="{Binding record_id}" Width="*"/>
+                            <DataGridTextColumn Header="Book ID" Binding="{Binding book_id}" Width="*"/>
+                            <DataGridTextColumn Header="Boardgame ID" Binding="{Binding boardgame_id}" Width="*"/>
+                            <DataGridTextColumn Header="Date Borrowed" Binding="{Binding date_borrowed}" Width="*"/>
+                            <DataGridTextColumn Header="Time Borrowed" Binding="{Binding time_borrowed}" Width="*"/>
+                            <DataGridTextColumn Header="Time Returned" Binding="{Binding time_returned}" Width="*"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </StackPanel>
+            </TabItem>
+        </TabControl>
+    </Grid>
+</Window>
