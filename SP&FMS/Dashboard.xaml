@@ -8,6 +8,18 @@
 
     <Grid Margin="20">
         <StackPanel>
+            <!-- Back Button -->
+            <Button Content="Log Out"
+                    Width="80"
+                    Height="30"
+                    Background="#1E2A38"
+                    Foreground="White"
+                    BorderBrush="White"
+                    FontWeight="Bold"
+                    HorizontalAlignment="Left"
+                    Margin="0,0,0,10"
+                    Click="BackButton_Click"/>
+            
             <!-- Header -->
             <TextBlock Text="Student Dashboard"
                        FontSize="24"
@@ -34,33 +46,25 @@
                                 Padding="20"
                                 Margin="0,0,107,10">
                             <StackPanel>
-<<<<<<< HEAD
 
-                                <StackPanel/>
-=======
+
+                                
+
                                 <TextBlock Text="Personal Information"
                                            FontWeight="Bold"
-                                           FontSize="16"
-                                           Margin="0,0,0,10"/>
-                                <TextBlock Text="Sarah Kennedy" FontSize="14" FontWeight="SemiBold"/>
-                                <TextBlock Text="Student ID: 2021-45678" FontSize="13" Margin="0,5,0,5"/>
+                                           FontSize="18"
+                                           Margin="0,0,0,15"/>
+                                <TextBlock x:Name="lblWelcome"
+                                             FontSize="18"
+                                             Foreground="Black"
+                                             FontWeight="Bold"
+                                             TextAlignment="Center"
+                                             Margin="0,0,0,10"/>
+                                <TextBlock x:Name="lblDetails"
+                                             FontSize="16"
+                                             Foreground="Black"
+                                             TextAlignment="Center"/>
 
-                                <Border Background="Black"
-                                        CornerRadius="5"
-                                        Padding="5"
-                                        HorizontalAlignment="Left"
-                                        Margin="0,0,0,10">
-                                    <TextBlock Text="Active"
-                                               Foreground="White"
-                                               FontSize="12"/>
-                                </Border>
-
-                                <StackPanel>
-                                    <TextBlock Text="📧 sarah.kennedy@university.edu" FontSize="13"/>
-                                    <TextBlock Text="📞 (555) 123-4567" FontSize="13"/>
-                                    <TextBlock Text="📍 Dorm Hall A, Room 302" FontSize="13"/>
-                                </StackPanel>
->>>>>>> 8e4b010fb9e054592ebb8bd74ebb159abb299fcb
                             </StackPanel>
                         </Border>
 

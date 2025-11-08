@@ -19,9 +19,22 @@ namespace SP_FMS
     /// </summary>
     public partial class Dashboard : Window
     {
-        public Dashboard()
+        private Student _student;
+        public Dashboard(Student student)
         {
             InitializeComponent();
+            _student = student;
+
+            // Update UI labels
+            lblWelcome.Text = $"Welcome, {_student.FullName}!";
+            lblDetails.Text = $"ID: {_student.ID}\nCourse: {_student.Course}\nEmail: {_student.Email}\nContact: {_student.Contact}";
+        }
+
+        private void BackButton_Click(object sender, RoutedEventArgs e)
+        {
+            MainWindow mainWindow = new MainWindow();
+            mainWindow.Show();
+            this.Close();
         }
     }
 }

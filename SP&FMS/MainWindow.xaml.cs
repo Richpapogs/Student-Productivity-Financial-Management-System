@@ -1,4 +1,6 @@
-﻿using System.Text;
+﻿using MySql.Data.MySqlClient;
+using System.Reflection.PortableExecutable;
+using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -8,6 +10,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+
 
 namespace SP_FMS
 {
@@ -20,23 +23,51 @@ namespace SP_FMS
 
         private void Enter_Click(object sender, RoutedEventArgs e)
         {
-            string studentId = txtStudentId.Text;
+            string id = txtStudentId.Text;
             string password = txtPassword.Password;
 
-            if (studentId == "12345" && password == "admin")
-            {
-                MessageBox.Show("Login successful!", "Welcome");
+            string connectionString = "server=localhost;database=sp_fms;uid=root;pwd=;";
 
-                // Open Dashboard only on success
-                Dashboard dashboard = new Dashboard();
-                dashboard.Show();
-
-                // Close login window
-                this.Close();
-            }
-            else
+            using (MySqlConnection conn = new MySqlConnection(connectionString))
             {
-                MessageBox.Show("Invalid Student ID or Password.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                try
+                {
+                    conn.Open();
+                    string query = "SELECT id, password, first_name, last_name, course, email, contact FROM students WHERE id=@id";
+                    MySqlCommand cmd = new MySqlCommand(query, conn);
+                    cmd.Parameters.AddWithValue("@id", id);
+                    cmd.Parameters.AddWithValue("@pass", password);
+
+                    using (MySqlDataReader reader = cmd.ExecuteReader())
+
+                        if (reader.Read())
+                        {
+                            // Login successful, create Student object
+                            Student student = new Student
+                            {
+                                ID = reader["id"].ToString(),
+                                FullName = reader["first_name"].ToString() + " " + reader["last_name"].ToString(),
+                                Course = reader["course"].ToString(),
+                                Email = reader["email"].ToString(),
+                                Contact = reader["contact"].ToString()
+                            };
+
+                            MessageBox.Show("Login successful!", "Welcome");
+
+                            Dashboard dashboard = new Dashboard(student);
+                            dashboard.Show();
+                            this.Close();
+                        }
+                        else
+                        {
+                            MessageBox.Show("Invalid Student ID or Password.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                        }
+
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Database connection failed:\n" + ex.Message);
+                }
             }
         }
 
@@ -45,6 +76,9 @@ namespace SP_FMS
         private void Create_Click(object sender, RoutedEventArgs e)
         {
             MessageBox.Show("Redirecting to create account page...", "Create Account");
+            CreateAccountPage createAccountPage = new CreateAccountPage();
+            createAccountPage.Show();
+            this.Close();
         }
 
         private void ForgotPassword_Click(object sender, System.Windows.Input.MouseButtonEventArgs e)

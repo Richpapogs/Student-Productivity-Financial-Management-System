@@ -34,8 +34,28 @@
                                 Padding="20"
                                 Margin="0,0,107,10">
                             <StackPanel>
+                                <TextBlock Text="Personal Information"
+                                           FontWeight="Bold"
+                                           FontSize="16"
+                                           Margin="0,0,0,10"/>
+                                <TextBlock Text="Sarah Kennedy" FontSize="14" FontWeight="SemiBold"/>
+                                <TextBlock Text="Student ID: 2021-45678" FontSize="13" Margin="0,5,0,5"/>
 
-                                <StackPanel/>
+                                <Border Background="Black"
+                                        CornerRadius="5"
+                                        Padding="5"
+                                        HorizontalAlignment="Left"
+                                        Margin="0,0,0,10">
+                                    <TextBlock Text="Active"
+                                               Foreground="White"
+                                               FontSize="12"/>
+                                </Border>
+
+                                <StackPanel>
+                                    <TextBlock Text="📧 sarah.kennedy@university.edu" FontSize="13"/>
+                                    <TextBlock Text="📞 (555) 123-4567" FontSize="13"/>
+                                    <TextBlock Text="📍 Dorm Hall A, Room 302" FontSize="13"/>
+                                </StackPanel>
                             </StackPanel>
                         </Border>
 
