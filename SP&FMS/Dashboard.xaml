@@ -1,115 +1,152 @@
-﻿<Window x:Class="SP_FMS.Dashboard"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Student Dashboard"
-        Height="600" Width="1000"
-        WindowStartupLocation="CenterScreen"
-        Background="#0E1726">
-
-    <Grid Margin="20">
-        <StackPanel>
+﻿<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:av="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="av" x:Class="SP_FMS.Dashboard" WindowStartupLocation="CenterScreen" Width="1000" Title="Student Dashboard" Height="600" Background="#0E1726"
+>
+    <Grid Margin="20"
+>
+        <StackPanel
+>
             <!-- Back Button -->
-            <Button Content="Log Out"
-                    Width="80"
-                    Height="30"
-                    Background="#1E2A38"
-                    Foreground="White"
-                    BorderBrush="White"
-                    FontWeight="Bold"
-                    HorizontalAlignment="Left"
-                    Margin="0,0,0,10"
-                    Click="BackButton_Click"/>
-            
+            <Button Width="80" Margin="0,0,0,10" Height="30" HorizontalAlignment="Left" FontWeight="Bold" Foreground="White" Content="Log Out" Click="BackButton_Click" BorderBrush="White" Background="#1E2A38"/>
             <!-- Header -->
-            <TextBlock Text="Student Dashboard"
-                       FontSize="24"
-                       FontWeight="Bold"
-                       Foreground="White"
-                       Margin="10,10,0,20" HorizontalAlignment="Center"/>
-            <TabControl Background="#0E1726"
-                        BorderThickness="0"
-                        Padding="10"
-                        FontSize="14"
-                        Foreground="White" Height="430" Width="965">
-
+            <TextBlock Text="Student Dashboard" Margin="10,10,0,20" HorizontalAlignment="Center" FontSize="24" FontWeight="Bold" Foreground="White"/>
+            <TabControl Width="965" Padding="10" Height="430" FontSize="14" Foreground="White" BorderThickness="0" Background="#0E1726"
+>
                 <!-- Profile Tab -->
-                <TabItem Header="Profile" Margin="32,1,-174,-3">
-                    <Grid Margin="10">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="101*" />
-                            <ColumnDefinition Width="129*" />
+                <TabItem Header="Profile" Margin="32,1,-174,-3"
+>
+                    <Grid Margin="10"
+>
+                        <Grid.ColumnDefinitions
+>
+                            <ColumnDefinition Width="101*"/>
+                            <ColumnDefinition Width="129*"/>
                         </Grid.ColumnDefinitions>
-
                         <!-- Personal Info -->
-                        <Border Background="White"
-                                CornerRadius="10"
-                                Padding="20"
-                                Margin="0,0,107,10">
-                            <StackPanel>
-
-
-                                
-
+                        <Border Padding="20" Margin="0,0,107,10" CornerRadius="10" Background="White"
+>
+                            <StackPanel
+>
                                 <TextBlock Text="Personal Information"
-                                           FontWeight="Bold"
-                                           FontSize="18"
-                                           Margin="0,0,0,15"/>
+           Margin="0,0,0,15"
+           FontSize="18"
+           FontWeight="Bold"
+           Foreground="Black"
+           HorizontalAlignment="Center"/>
+
                                 <TextBlock x:Name="lblWelcome"
-                                             FontSize="18"
-                                             Foreground="Black"
-                                             FontWeight="Bold"
-                                             TextAlignment="Center"
-                                             Margin="0,0,0,10"/>
+           Margin="0,0,0,20"
+           FontSize="18"
+           FontWeight="Bold"
+           Foreground="Black"
+           TextAlignment="Left"/>
+
                                 <TextBlock x:Name="lblDetails"
-                                             FontSize="16"
-                                             Foreground="Black"
-                                             TextAlignment="Center"/>
+           Margin="0,0,0,20"
+           FontSize="16"
+           Foreground="Black"
+           TextAlignment="Left"
+           TextWrapping="Wrap"/>
+
 
                             </StackPanel>
                         </Border>
-
                         <!-- Notes -->
-                        <Border Grid.Column="1"
-                                Background="#FFFACD"
-                                CornerRadius="10"
-                                Padding="20" Margin="198,0,0,0">
-                            <TextBox Text="Add your notes here..."
-                                     AcceptsReturn="True"
-                                     TextWrapping="Wrap"
-                                     FontSize="13"
-                                     Background="Transparent"
-                                     BorderThickness="0"/>
+                        <Border Padding="20" Margin="198,0,0,0" Grid.Column="1" CornerRadius="10" Background="#FFFACD"
+>
+                            <TextBox 
+    x:Name="txtNotes"
+    Text="Add your notes here..."
+    TextWrapping="Wrap"
+    FontSize="13"
+    BorderThickness="0"
+    Background="Transparent"
+    AcceptsReturn="True"
+    Foreground="Gray"
+    GotFocus="txtNotes_GotFocus"
+    LostFocus="txtNotes_LostFocus"/>
+
                         </Border>
                     </Grid>
                 </TabItem>
-
                 <!-- To-Do List Tab -->
-                <TabItem Header="To-Do List" Margin="174,1,-174,-3" Width="305">
-                    <Grid Background="#1E2A38">
-                        <TextBlock Text="To-Do List Content Here"
-                                   Foreground="White"
-                                   VerticalAlignment="Center"
-                                   HorizontalAlignment="Center"/>
-                    </Grid>
-                </TabItem>
+                <TabItem Width="305" Margin="174,1,-174,-3" Header="To-Do List"
+>
+                    <Border Height="406" Padding="20" Background="#0F172A"
+>
+                        <Grid
+>
+                            <Grid.RowDefinitions
+>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <!-- Add Task -->
+                            <StackPanel Margin="0,0,0,10" Orientation="Horizontal"
+>
+                                <TextBox Width="300" Text="Enter task..." x:Name="txtNewTask" LostFocus="TxtNewTask_LostFocus" Height="30" GotFocus="TxtNewTask_GotFocus" Foreground="Gray"/>
+                                <Button Width="80" Margin="10,0,0,0" Height="30" Content="Add" Click="AddTask_Click"/>
+                            </StackPanel>
+                            <!-- Task List -->
+                            <DataGrid
+                      Grid.Row="1"
+                      Margin="0,0,453,0" x:Name="dgTodo" HeadersVisibility="Column" CanUserAddRows="False" Background="White" AutoGenerateColumns="False"
+>
+                                <DataGrid.Columns
+>
+                                    <!-- Task Name -->
+                                    <DataGridTextColumn Binding="{Binding task_name}" Header="Task" Width="*"/>
+                                    <!-- Status -->
+                                    <DataGridCheckBoxColumn Binding="{Binding is_completed}" Header="Done?" Width="100"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                            <!-- Save Button -->
+                            <Button Width="140" VerticalAlignment="Top" Grid.Row="2" RenderTransformOrigin="0.5,0.5" Margin="0,5,0,0" Height="35" HorizontalAlignment="Center" Content="Save Changes" Click="SaveTodoChanges_Click"
+>
+                                <Button.RenderTransform
+>
+                                    <TransformGroup
+>
+                                        <ScaleTransform/>
+                                        <SkewTransform AngleX="3.094"/>
+                                        <RotateTransform/>
+                                        <TranslateTransform X="0.946"/>
+                                    </TransformGroup>
+                                </Button.RenderTransform>
+                            </Button>
+                            <StackPanel Grid.Row="1" Margin="457,0,0,0" Width="300">
+                                <!-- Header for Completed Tasks -->
+                                <Border Background="#1E293B" CornerRadius="4" Padding="6" Margin="0,0,0,6">
+                                    <TextBlock Text="Done Tasks" Foreground="White" FontWeight="Bold"/>
+                                </Border>
 
+                                <ListView x:Name="lstCompletedTasks" MouseDoubleClick="RestoreTask_DoubleClick"
+              Background="White" Height="320">
+                                    <ListView.View>
+                                        <GridView>
+                                            <GridViewColumn Header="Task" DisplayMemberBinding="{Binding task_name}" Width="280"/>
+                                        </GridView>
+                                    </ListView.View>
+                                </ListView>
+                            </StackPanel>
+
+                        </Grid>
+                    </Border>
+                </TabItem>
                 <!-- Financials Tab -->
-                <TabItem Header="Financials" Margin="174,1,-174,-3" Width="305">
-                    <Grid Background="#1E2A38">
-                        <Grid.ColumnDefinitions>
+                <TabItem Width="305" Margin="174,1,-174,-3" Header="Financials"
+>
+                    <Grid Background="#1E2A38"
+>
+                        <Grid.ColumnDefinitions
+>
                             <ColumnDefinition Width="37*"/>
                             <ColumnDefinition Width="63*"/>
                             <ColumnDefinition Width="373*"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock Text="Financials Content Here"
-                                   Foreground="White"
-                                   VerticalAlignment="Center"
-                                   HorizontalAlignment="Left" Grid.Column="2" Margin="200,0,0,0"/>
+                        <TextBlock VerticalAlignment="Center" Text="Financials Content Here" Margin="200,0,0,0" HorizontalAlignment="Left" Foreground="White" Grid.Column="2"/>
                     </Grid>
                 </TabItem>
             </TabControl>
-
-            <!-- Tabs -->
         </StackPanel>
     </Grid>
 </Window>

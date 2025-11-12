@@ -23,46 +23,64 @@ namespace SP_FMS
 
         private void Enter_Click(object sender, RoutedEventArgs e)
         {
-            string id = txtStudentId.Text;
-            string password = txtPassword.Password;
+            string id = txtStudentId.Text.Trim();
+            string password = txtPassword.Password.Trim();
 
-            string connectionString = "server=localhost;database=sp_fms;uid=root;pwd=;";
-
-            using (MySqlConnection conn = new MySqlConnection(connectionString))
+            using (MySqlConnection conn = DBHelper.GetConnection())
             {
                 try
                 {
                     conn.Open();
-                    string query = "SELECT id, password, first_name, last_name, course, email, contact FROM students WHERE id=@id";
+
+                    string query = "SELECT password FROM students WHERE id=@id";
                     MySqlCommand cmd = new MySqlCommand(query, conn);
                     cmd.Parameters.AddWithValue("@id", id);
-                    cmd.Parameters.AddWithValue("@pass", password);
 
-                    using (MySqlDataReader reader = cmd.ExecuteReader())
+                    string storedHash = cmd.ExecuteScalar()?.ToString();
 
+                    if (storedHash == null)
+                    {
+                        MessageBox.Show("Invalid Student ID or Password.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                        return;
+                    }
+
+                    // Verify hashed password
+                    if (!PasswordHelper.VerifyPassword(password, storedHash))
+                    {
+                        MessageBox.Show("Invalid Student ID or Password.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                        return;
+                    }
+
+                    // Fetch full student record
+                    string infoQuery = @"SELECT id, first_name, last_name, course, email, contact 
+                                 FROM students WHERE id=@id";
+
+                    MySqlCommand cmdInfo = new MySqlCommand(infoQuery, conn);
+                    cmdInfo.Parameters.AddWithValue("@id", id);
+
+                    using (MySqlDataReader reader = cmdInfo.ExecuteReader())
+                    {
                         if (reader.Read())
                         {
-                            // Login successful, create Student object
                             Student student = new Student
                             {
                                 ID = reader["id"].ToString(),
-                                FullName = reader["first_name"].ToString() + " " + reader["last_name"].ToString(),
+                                FullName = $"{reader["first_name"]} {reader["last_name"]}",
                                 Course = reader["course"].ToString(),
                                 Email = reader["email"].ToString(),
                                 Contact = reader["contact"].ToString()
                             };
 
                             MessageBox.Show("Login successful!", "Welcome");
-
                             Dashboard dashboard = new Dashboard(student);
                             dashboard.Show();
                             this.Close();
                         }
                         else
                         {
-                            MessageBox.Show("Invalid Student ID or Password.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                            MessageBox.Show("Login data incomplete.", "Error");
                         }
-
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -73,9 +91,9 @@ namespace SP_FMS
 
 
 
+
         private void Create_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("Redirecting to create account page...", "Create Account");
             CreateAccountPage createAccountPage = new CreateAccountPage();
             createAccountPage.Show();
             this.Close();
