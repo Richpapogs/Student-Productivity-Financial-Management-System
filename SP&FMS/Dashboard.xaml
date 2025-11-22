@@ -17,11 +17,12 @@
 >
                         <Grid.ColumnDefinitions
 >
-                            <ColumnDefinition Width="101*"/>
-                            <ColumnDefinition Width="129*"/>
+                            <ColumnDefinition Width="1*"/>
+                            <ColumnDefinition Width="1*"/>
+                            <ColumnDefinition Width="1*"/>
                         </Grid.ColumnDefinitions>
                         <!-- Personal Info -->
-                        <Border Padding="20" Margin="0,0,107,10" CornerRadius="10" Background="White"
+                        <Border Padding="20" Margin="0,0,10,10" CornerRadius="10" Background="White"
 >
                             <StackPanel
 >
@@ -44,13 +45,115 @@
            FontSize="16"
            Foreground="Black"
            TextAlignment="Left"
-           TextWrapping="Wrap"/>
+           TextWrapping="Wrap"
+           LineHeight="13"/>
 
+                                <!-- Change Password Link -->
+                                <TextBlock x:Name="txtChangePassword" 
+                                           Text="Change Password" 
+                                           FontSize="14" 
+                                           Foreground="Black"
+                                           Cursor="Hand"
+                                           HorizontalAlignment="Center"
+                                           MouseLeftButtonDown="ChangePassword_Click"
+                                           MouseEnter="ChangePassword_MouseEnter"
+                                           MouseLeave="ChangePassword_MouseLeave"
+                                           Margin="70"/>
+                                           
 
                             </StackPanel>
                         </Border>
+                        
+                        <!-- Pie Chart -->
+                        <Border Padding="20" Margin="10,0,10,10" Grid.Column="1" CornerRadius="10" Background="White">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                
+                                <TextBlock Text="Task Progress (7 Days)" 
+                                           FontSize="16" 
+                                           FontWeight="Bold" 
+                                           Foreground="Black" 
+                                           HorizontalAlignment="Center" 
+                                           Margin="0,0,0,10"/>
+                                
+                                <!-- Pie Chart Container -->
+                                <Viewbox Grid.Row="1" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <Canvas Width="200" Height="200">
+                                        <!-- Completed Tasks (Green) -->
+                                        <Path x:Name="pathCompleted" 
+                                              Fill="#4CAF50" 
+                                              Stroke="White" 
+                                              StrokeThickness="2">
+                                            <Path.Data>
+                                                <PathGeometry>
+                                                    <PathFigure x:Name="figureCompleted" StartPoint="100,100">
+                                                        <LineSegment Point="100,0"/>
+                                                        <ArcSegment x:Name="arcCompleted" 
+                                                                    Size="100,100" 
+                                                                    SweepDirection="Clockwise" 
+                                                                    Point="100,100" 
+                                                                    IsLargeArc="False"/>
+                                                    </PathFigure>
+                                                </PathGeometry>
+                                            </Path.Data>
+                                        </Path>
+                                        
+                                        <!-- Uncompleted Tasks (Red) -->
+                                        <Path x:Name="pathUncompleted" 
+                                              Fill="#F44336" 
+                                              Stroke="White" 
+                                              StrokeThickness="2">
+                                            <Path.Data>
+                                                <PathGeometry>
+                                                    <PathFigure x:Name="figureUncompleted" StartPoint="100,100">
+                                                        <LineSegment x:Name="lineUncompleted" Point="100,100"/>
+                                                        <ArcSegment x:Name="arcUncompleted" 
+                                                                    Size="100,100" 
+                                                                    SweepDirection="Clockwise" 
+                                                                    Point="100,100" 
+                                                                    IsLargeArc="False"/>
+                                                    </PathFigure>
+                                                </PathGeometry>
+                                            </Path.Data>
+                                        </Path>
+                                        
+                                    </Canvas>
+                                </Viewbox>
+                                
+                                <!-- Labels Outside (Count | Percentage) -->
+                                <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,10,0,0">
+                                    <StackPanel Margin="0,0,20,0">
+                                        <TextBlock x:Name="lblCompletedInfo" 
+                                                   FontSize="14" 
+                                                   FontWeight="Bold" 
+                                                   Foreground="#4CAF50" 
+                                                   HorizontalAlignment="Center"/>
+                                        <TextBlock Text="Completed" 
+                                                   FontSize="12" 
+                                                   Foreground="Black" 
+                                                   HorizontalAlignment="Center"/>
+                                    </StackPanel>
+                                    <StackPanel>
+                                        <TextBlock x:Name="lblUncompletedInfo" 
+                                                   FontSize="14" 
+                                                   FontWeight="Bold" 
+                                                   Foreground="#F44336" 
+                                                   HorizontalAlignment="Center"/>
+                                        <TextBlock Text="Uncompleted" 
+                                                   FontSize="12" 
+                                                   Foreground="Black" 
+                                                   HorizontalAlignment="Center"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                        
                         <!-- Notes -->
-                        <Border Padding="20" Margin="198,0,0,0" Grid.Column="1" CornerRadius="10" Background="#FFFACD"
+                        <Border Padding="20" Margin="10,0,0,10" Grid.Column="2" CornerRadius="10" Background="#FFFACD"
 >
                             <TextBox 
     x:Name="txtNotes"
@@ -97,6 +200,44 @@
                                     <DataGridTextColumn Binding="{Binding task_name}" Header="Task" Width="*"/>
                                     <!-- Status -->
                                     <DataGridCheckBoxColumn Binding="{Binding is_completed}" Header="Done?" Width="100"/>
+                                    <!-- Remove Button -->
+                                    <DataGridTemplateColumn Header="Remove" Width="80">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Button Content="Remove" 
+                                                        Width="70" 
+                                                        Height="25" 
+                                                        Click="RemoveTask_Click"
+                                                        Background="#DC3545"
+                                                        Foreground="White"
+                                                        BorderThickness="0"
+                                                        Cursor="Hand"
+                                                        FontSize="11">
+                                                    <Button.Style>
+                                                        <Style TargetType="Button">
+                                                            <Setter Property="Template">
+                                                                <Setter.Value>
+                                                                    <ControlTemplate TargetType="Button">
+                                                                        <Border Background="{TemplateBinding Background}"
+                                                                                CornerRadius="4"
+                                                                                Padding="5,2">
+                                                                            <ContentPresenter HorizontalAlignment="Center"
+                                                                                              VerticalAlignment="Center"/>
+                                                                        </Border>
+                                                                    </ControlTemplate>
+                                                                </Setter.Value>
+                                                            </Setter>
+                                                            <Style.Triggers>
+                                                                <Trigger Property="IsMouseOver" Value="True">
+                                                                    <Setter Property="Background" Value="#C82333"/>
+                                                                </Trigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Button.Style>
+                                                </Button>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
                                 </DataGrid.Columns>
                             </DataGrid>
                             <!-- Save Button -->

@@ -101,7 +101,9 @@ namespace SP_FMS
 
         private void ForgotPassword_Click(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
-            MessageBox.Show("Password recovery coming soon!", "Forgot Password");
+            ForgotPasswordWindow forgotPasswordWindow = new ForgotPasswordWindow();
+            forgotPasswordWindow.Owner = this;
+            forgotPasswordWindow.ShowDialog();
         }
     }
 }
