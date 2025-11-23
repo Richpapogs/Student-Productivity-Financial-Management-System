@@ -26,17 +26,28 @@ namespace SP_FMS
 
             // Set welcome info
             lblWelcome.Text = "Welcome, " + currentStudent.FullName;
-            lblDetails.Text = $"Course: {currentStudent.Course}\n\nEmail: {currentStudent.Email}\n\nContact: {currentStudent.Contact}";
+            lblDetails.Text = $"Course: {currentStudent.Course}\nEmail: {currentStudent.Email}\nContact: {currentStudent.Contact}";
 
             // Watermark behavior
             txtNewTask.GotFocus += TxtNewTask_GotFocus;
             txtNewTask.LostFocus += TxtNewTask_LostFocus;
+            txtBudget.GotFocus += TxtBudget_GotFocus;
+            txtBudget.LostFocus += TxtBudget_LostFocus;
+            txtExpenseCategory.GotFocus += TxtExpenseCategory_GotFocus;
+            txtExpenseCategory.LostFocus += TxtExpenseCategory_LostFocus;
+            txtCost.GotFocus += TxtCost_GotFocus;
+            txtCost.LostFocus += TxtCost_LostFocus;
 
             EnsureCompletionDateColumn();   // ensure completion_date column exists
+            EnsureFinancialTables();        // ensure financial tables exist
             LoadTasks();                    // load tasks for this student
             LoadCompletedTasks();           // load completed tasks for this student
             CleanupOldCompletedTasks();     // remove completed tasks older than 7 days
             UpdatePieChart();               // update pie chart with 7-day statistics
+            LoadExpenses();                 // load expenses for this student (today only)
+            LoadBudget();                   // load budget for this student
+            UpdateRemainingBudget();        // calculate and display remaining budget
+            UpdateExpensePieChart();        // update expense pie chart with 7-day statistics
         }
 
         #region To-Do List Methods
@@ -192,52 +203,6 @@ namespace SP_FMS
                 lstCompletedTasks.ItemsSource = completed;
             }
         }
-
-        private void EnsureCompletionDateColumn()
-        {
-            using (var conn = DBHelper.GetConnection())
-            {
-                conn.Open();
-
-                // Check if completion_date column exists
-                string checkQuery = @"SELECT COUNT(*) 
-                                      FROM INFORMATION_SCHEMA.COLUMNS 
-                                      WHERE TABLE_SCHEMA = DATABASE() 
-                                      AND TABLE_NAME = 'todo_tasks' 
-                                      AND COLUMN_NAME = 'completion_date'";
-                MySqlCommand checkCmd = new MySqlCommand(checkQuery, conn);
-                int columnExists = Convert.ToInt32(checkCmd.ExecuteScalar());
-
-                if (columnExists == 0)
-                {
-                    // Column doesn't exist, add it
-                    string alterQuery = "ALTER TABLE todo_tasks ADD COLUMN completion_date DATE NULL";
-                    MySqlCommand alterCmd = new MySqlCommand(alterQuery, conn);
-                    alterCmd.ExecuteNonQuery();
-                }
-            }
-        }
-
-        private void CleanupOldCompletedTasks()
-        {
-            using (var conn = DBHelper.GetConnection())
-            {
-                conn.Open();
-
-                // Ensure completion_date column exists
-                EnsureCompletionDateColumn();
-
-                // Delete completed tasks that are older than 7 days
-                string deleteQuery = @"DELETE FROM todo_tasks 
-                                       WHERE student_id=@id 
-                                       AND is_completed=1 
-                                       AND completion_date IS NOT NULL 
-                                       AND completion_date < DATE_SUB(CURDATE(), INTERVAL 7 DAY)";
-                MySqlCommand deleteCmd = new MySqlCommand(deleteQuery, conn);
-                deleteCmd.Parameters.AddWithValue("@id", studentId);
-                deleteCmd.ExecuteNonQuery();
-            }
-        }
         private void lstCompletedTasks_MouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
             if (lstCompletedTasks.SelectedItem == null) return;
@@ -311,40 +276,6 @@ namespace SP_FMS
             SaveProgressSilent(); // Automatically update todo_progress when adding task
         }
 
-        private void RemoveTask_Click(object sender, RoutedEventArgs e)
-        {
-            // Get the task from the button's DataContext
-            if (sender is Button button && button.DataContext is TodoTask task)
-            {
-                // Ask for confirmation
-                MessageBoxResult result = MessageBox.Show(
-                    $"Are you sure you want to remove the task '{task.task_name}'?",
-                    "Remove Task",
-                    MessageBoxButton.YesNo,
-                    MessageBoxImage.Question);
-
-                if (result == MessageBoxResult.Yes)
-                {
-                    // Delete the task from database
-                    using (var conn = DBHelper.GetConnection())
-                    {
-                        conn.Open();
-
-                        string query = "DELETE FROM todo_tasks WHERE task_id=@id";
-                        MySqlCommand cmd = new MySqlCommand(query, conn);
-                        cmd.Parameters.AddWithValue("@id", task.task_id);
-                        cmd.ExecuteNonQuery();
-                    }
-
-                    // Reload tasks
-                    LoadTasks();
-                    UpdatePieChart(); // Update pie chart after removing task
-                    SaveProgressSilent(); // Automatically update todo_progress when removing task
-                    MessageBox.Show("Task removed successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
-                }
-            }
-        }
-
         private void SaveProgress()
         {
             SaveProgressSilent();
@@ -398,6 +329,52 @@ namespace SP_FMS
                 }
             }
         }
+
+        private void EnsureCompletionDateColumn()
+        {
+            using (var conn = DBHelper.GetConnection())
+            {
+                conn.Open();
+
+                // Check if completion_date column exists
+                string checkQuery = @"SELECT COUNT(*) 
+                                      FROM INFORMATION_SCHEMA.COLUMNS 
+                                      WHERE TABLE_SCHEMA = DATABASE() 
+                                      AND TABLE_NAME = 'todo_tasks' 
+                                      AND COLUMN_NAME = 'completion_date'";
+                MySqlCommand checkCmd = new MySqlCommand(checkQuery, conn);
+                int columnExists = Convert.ToInt32(checkCmd.ExecuteScalar());
+
+                if (columnExists == 0)
+                {
+                    // Column doesn't exist, add it
+                    string alterQuery = "ALTER TABLE todo_tasks ADD COLUMN completion_date DATE NULL";
+                    MySqlCommand alterCmd = new MySqlCommand(alterQuery, conn);
+                    alterCmd.ExecuteNonQuery();
+                }
+            }
+        }
+
+        private void CleanupOldCompletedTasks()
+        {
+            using (var conn = DBHelper.GetConnection())
+            {
+                conn.Open();
+
+                // Ensure completion_date column exists
+                EnsureCompletionDateColumn();
+
+                // Delete completed tasks that are older than 7 days
+                string deleteQuery = @"DELETE FROM todo_tasks 
+                                       WHERE student_id=@id 
+                                       AND is_completed=1 
+                                       AND completion_date IS NOT NULL 
+                                       AND completion_date < DATE_SUB(CURDATE(), INTERVAL 7 DAY)";
+                MySqlCommand deleteCmd = new MySqlCommand(deleteQuery, conn);
+                deleteCmd.Parameters.AddWithValue("@id", studentId);
+                deleteCmd.ExecuteNonQuery();
+            }
+        }
         private void txtNotes_GotFocus(object sender, RoutedEventArgs e)
         {
             if (txtNotes.Text == "Add your notes here...")
@@ -415,6 +392,8 @@ namespace SP_FMS
                 txtNotes.Foreground = Brushes.Gray;
             }
         }
+
+       
 
         #region Pie Chart
 
@@ -629,6 +608,649 @@ namespace SP_FMS
         private void ChangePassword_MouseLeave(object sender, MouseEventArgs e)
         {
             txtChangePassword.Foreground = Brushes.Black;
+        }
+
+        #endregion
+
+        #region Financial Management
+
+        private void EnsureFinancialTables()
+        {
+            using (var conn = DBHelper.GetConnection())
+            {
+                conn.Open();
+
+                // Check if student_budget table exists
+                string checkBudgetTable = @"SELECT COUNT(*) 
+                                           FROM INFORMATION_SCHEMA.TABLES 
+                                           WHERE TABLE_SCHEMA = DATABASE() 
+                                           AND TABLE_NAME = 'student_budget'";
+                MySqlCommand checkBudgetCmd = new MySqlCommand(checkBudgetTable, conn);
+                int budgetTableExists = Convert.ToInt32(checkBudgetCmd.ExecuteScalar());
+
+                if (budgetTableExists == 0)
+                {
+                    string createBudgetTable = @"CREATE TABLE student_budget (
+                        budget_id INT AUTO_INCREMENT PRIMARY KEY,
+                        student_id VARCHAR(20) NOT NULL,
+                        budget_amount DECIMAL(10, 2) NOT NULL,
+                        budget_remaining DECIMAL(10, 2) NOT NULL,
+                        date_set DATE NOT NULL,
+                        FOREIGN KEY (student_id) REFERENCES students(id),
+                        UNIQUE KEY unique_student_date (student_id, date_set)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
+                    MySqlCommand createBudgetCmd = new MySqlCommand(createBudgetTable, conn);
+                    createBudgetCmd.ExecuteNonQuery();
+                }
+                else
+                {
+                    // Check if budget_remaining column exists
+                    string checkBudgetRemainingColumn = @"SELECT COUNT(*) 
+                                                         FROM INFORMATION_SCHEMA.COLUMNS 
+                                                         WHERE TABLE_SCHEMA = DATABASE() 
+                                                         AND TABLE_NAME = 'student_budget' 
+                                                         AND COLUMN_NAME = 'budget_remaining'";
+                    MySqlCommand checkBudgetRemainingCmd = new MySqlCommand(checkBudgetRemainingColumn, conn);
+                    int budgetRemainingColumnExists = Convert.ToInt32(checkBudgetRemainingCmd.ExecuteScalar());
+
+                    if (budgetRemainingColumnExists == 0)
+                    {
+                        // Add budget_remaining column
+                        string alterQuery = "ALTER TABLE student_budget ADD COLUMN budget_remaining DECIMAL(10, 2) NOT NULL DEFAULT 0";
+                        MySqlCommand alterCmd = new MySqlCommand(alterQuery, conn);
+                        alterCmd.ExecuteNonQuery();
+                    }
+                }
+
+                // Check if expenses table exists
+                string checkExpensesTable = @"SELECT COUNT(*) 
+                                              FROM INFORMATION_SCHEMA.TABLES 
+                                              WHERE TABLE_SCHEMA = DATABASE() 
+                                              AND TABLE_NAME = 'expenses'";
+                MySqlCommand checkExpensesCmd = new MySqlCommand(checkExpensesTable, conn);
+                int expensesTableExists = Convert.ToInt32(checkExpensesCmd.ExecuteScalar());
+
+                if (expensesTableExists == 0)
+                {
+                    string createExpensesTable = @"CREATE TABLE expenses (
+                        expense_id INT AUTO_INCREMENT PRIMARY KEY,
+                        student_id VARCHAR(20) NOT NULL,
+                        category VARCHAR(100) NOT NULL,
+                        cost DECIMAL(10, 2) NOT NULL,
+                        date_added DATE NOT NULL,
+                        FOREIGN KEY (student_id) REFERENCES students(id)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
+                    MySqlCommand createExpensesCmd = new MySqlCommand(createExpensesTable, conn);
+                    createExpensesCmd.ExecuteNonQuery();
+                }
+            }
+        }
+
+        #region Watermark TextBox (Financial)
+
+        private void TxtBudget_GotFocus(object sender, RoutedEventArgs e)
+        {
+            if (txtBudget.Text == "Enter Budget")
+            {
+                txtBudget.Text = "";
+                txtBudget.Foreground = Brushes.Black;
+            }
+        }
+
+        private void TxtBudget_LostFocus(object sender, RoutedEventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(txtBudget.Text))
+            {
+                txtBudget.Text = "Enter Budget";
+                txtBudget.Foreground = Brushes.Gray;
+            }
+        }
+
+        private void TxtExpenseCategory_GotFocus(object sender, RoutedEventArgs e)
+        {
+            if (txtExpenseCategory.Text == "Enter Expense Category")
+            {
+                txtExpenseCategory.Text = "";
+                txtExpenseCategory.Foreground = Brushes.Black;
+            }
+        }
+
+        private void TxtExpenseCategory_LostFocus(object sender, RoutedEventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(txtExpenseCategory.Text))
+            {
+                txtExpenseCategory.Text = "Enter Expense Category";
+                txtExpenseCategory.Foreground = Brushes.Gray;
+            }
+        }
+
+        private void TxtCost_GotFocus(object sender, RoutedEventArgs e)
+        {
+            if (txtCost.Text == "Enter Cost")
+            {
+                txtCost.Text = "";
+                txtCost.Foreground = Brushes.Black;
+            }
+        }
+
+        private void TxtCost_LostFocus(object sender, RoutedEventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(txtCost.Text))
+            {
+                txtCost.Text = "Enter Cost";
+                txtCost.Foreground = Brushes.Gray;
+            }
+        }
+
+        #endregion
+
+        private void LoadBudget()
+        {
+            // Budget is loaded when calculating remaining budget
+            UpdateRemainingBudget();
+        }
+
+        private void LoadExpenses()
+        {
+            using (var conn = DBHelper.GetConnection())
+            {
+                conn.Open();
+
+                // Only show today's expenses in the data grid
+                string query = "SELECT expense_id, student_id, category, cost FROM expenses WHERE student_id=@id AND date_added=CURDATE() ORDER BY expense_id DESC";
+                MySqlCommand cmd = new MySqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@id", studentId);
+
+                List<Expense> expenses = new List<Expense>();
+
+                using (var reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        expenses.Add(new Expense
+                        {
+                            expense_id = reader.GetInt32("expense_id"),
+                            student_id = reader.GetString("student_id"),
+                            category = reader.GetString("category"),
+                            cost = reader.GetDecimal("cost")
+                        });
+                    }
+                }
+
+                dgExpenses.ItemsSource = expenses;
+            }
+        }
+
+        private string CategorizeExpense(string userInput)
+        {
+            if (string.IsNullOrWhiteSpace(userInput))
+                return "Others";
+
+            string input = userInput.ToLower().Trim();
+
+            // Food keywords
+            string[] foodKeywords = { "food", "meal", "eat", "restaurant", "cafe", "snack", "lunch", "dinner", "breakfast", "groceries", "grocery", "market", "store", "buy", "purchase", "junk", "drink", "beverage", "water", "juice", "coffee", "tea" };
+
+            // Transportation keywords
+            string[] transportKeywords = { "transport", "transportation", "fare", "taxi", "uber", "grab", "jeepney", "bus", "train", "lrt", "mrt", "gas", "gasoline", "fuel", "parking", "trike", "tricycle", "motor", "motorcycle" };
+
+            // Check for food
+            foreach (string keyword in foodKeywords)
+            {
+                if (input.Contains(keyword))
+                    return "Food";
+            }
+
+            // Check for transportation
+            foreach (string keyword in transportKeywords)
+            {
+                if (input.Contains(keyword))
+                    return "Transportation";
+            }
+
+            // Default to Others
+            return "Others";
+        }
+
+        private void AddBudget_Click(object sender, RoutedEventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(txtBudget.Text) || txtBudget.Text == "Enter Budget")
+            {
+                MessageBox.Show("Please enter a budget amount.");
+                return;
+            }
+
+            if (!decimal.TryParse(txtBudget.Text, out decimal budgetAmount) || budgetAmount <= 0)
+            {
+                MessageBox.Show("Please enter a valid budget amount.");
+                return;
+            }
+
+            using (var conn = DBHelper.GetConnection())
+            {
+                conn.Open();
+
+                // Check if budget exists for today
+                string checkQuery = "SELECT COUNT(*) FROM student_budget WHERE student_id=@id AND date_set=CURDATE()";
+                MySqlCommand checkCmd = new MySqlCommand(checkQuery, conn);
+                checkCmd.Parameters.AddWithValue("@id", studentId);
+                int exists = Convert.ToInt32(checkCmd.ExecuteScalar());
+
+                // Calculate budget_remaining (budget_amount - today's expenses)
+                decimal totalExpensesToday = 0;
+                string expensesQuery = "SELECT SUM(cost) FROM expenses WHERE student_id=@id AND date_added=CURDATE()";
+                MySqlCommand expensesCmd = new MySqlCommand(expensesQuery, conn);
+                expensesCmd.Parameters.AddWithValue("@id", studentId);
+                object expensesResult = expensesCmd.ExecuteScalar();
+                if (expensesResult != null && expensesResult != DBNull.Value)
+                {
+                    totalExpensesToday = Convert.ToDecimal(expensesResult);
+                }
+                decimal budgetRemaining = budgetAmount - totalExpensesToday;
+
+                if (exists > 0)
+                {
+                    // Update existing budget
+                    string updateQuery = "UPDATE student_budget SET budget_amount=@amount, budget_remaining=@remaining WHERE student_id=@id AND date_set=CURDATE()";
+                    MySqlCommand updateCmd = new MySqlCommand(updateQuery, conn);
+                    updateCmd.Parameters.AddWithValue("@id", studentId);
+                    updateCmd.Parameters.AddWithValue("@amount", budgetAmount);
+                    updateCmd.Parameters.AddWithValue("@remaining", budgetRemaining);
+                    updateCmd.ExecuteNonQuery();
+                }
+                else
+                {
+                    // Insert new budget
+                    string insertQuery = "INSERT INTO student_budget(student_id, budget_amount, budget_remaining, date_set) VALUES(@id, @amount, @remaining, CURDATE())";
+                    MySqlCommand insertCmd = new MySqlCommand(insertQuery, conn);
+                    insertCmd.Parameters.AddWithValue("@id", studentId);
+                    insertCmd.Parameters.AddWithValue("@amount", budgetAmount);
+                    insertCmd.Parameters.AddWithValue("@remaining", budgetRemaining);
+                    insertCmd.ExecuteNonQuery();
+                }
+            }
+
+            txtBudget.Text = "Enter Budget";
+            txtBudget.Foreground = Brushes.Gray;
+            UpdateRemainingBudget();
+            MessageBox.Show("Budget added successfully!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
+        private void AddExpense_Click(object sender, RoutedEventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(txtExpenseCategory.Text) || txtExpenseCategory.Text == "Enter Expense Category")
+            {
+                MessageBox.Show("Please enter an expense category.");
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(txtCost.Text) || txtCost.Text == "Enter Cost")
+            {
+                MessageBox.Show("Please enter a cost.");
+                return;
+            }
+
+            if (!decimal.TryParse(txtCost.Text, out decimal cost) || cost <= 0)
+            {
+                MessageBox.Show("Please enter a valid cost amount.");
+                return;
+            }
+
+            // Auto-categorize the expense
+            string categorizedCategory = CategorizeExpense(txtExpenseCategory.Text);
+
+            using (var conn = DBHelper.GetConnection())
+            {
+                conn.Open();
+
+                string query = "INSERT INTO expenses(student_id, category, cost, date_added) VALUES(@id, @category, @cost, CURDATE())";
+                MySqlCommand cmd = new MySqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@id", studentId);
+                cmd.Parameters.AddWithValue("@category", categorizedCategory);
+                cmd.Parameters.AddWithValue("@cost", cost);
+                cmd.ExecuteNonQuery();
+            }
+
+            txtExpenseCategory.Text = "Enter Expense Category";
+            txtExpenseCategory.Foreground = Brushes.Gray;
+            txtCost.Text = "Enter Cost";
+            txtCost.Foreground = Brushes.Gray;
+
+            LoadExpenses();
+            UpdateRemainingBudget();
+            UpdateExpensePieChart(); // Update expense pie chart after adding expense
+        }
+
+        private void RemoveExpense_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button button && button.DataContext is Expense expense)
+            {
+                MessageBoxResult result = MessageBox.Show(
+                    $"Are you sure you want to remove the expense '{expense.category}' - ₱{expense.cost:N2}?",
+                    "Remove Expense",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question);
+
+                if (result == MessageBoxResult.Yes)
+                {
+                    using (var conn = DBHelper.GetConnection())
+                    {
+                        conn.Open();
+
+                        string query = "DELETE FROM expenses WHERE expense_id=@id";
+                        MySqlCommand cmd = new MySqlCommand(query, conn);
+                        cmd.Parameters.AddWithValue("@id", expense.expense_id);
+                        cmd.ExecuteNonQuery();
+                    }
+
+                    LoadExpenses();
+                    UpdateRemainingBudget();
+                    UpdateExpensePieChart(); // Update expense pie chart after removing expense
+                    MessageBox.Show("Expense removed successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+        }
+
+        private void UpdateRemainingBudget()
+        {
+            decimal budget = 0;
+            decimal totalExpenses = 0;
+            decimal budgetRemaining = 0;
+
+            using (var conn = DBHelper.GetConnection())
+            {
+                conn.Open();
+
+                // Get today's budget and budget_remaining
+                string budgetQuery = "SELECT budget_amount, budget_remaining FROM student_budget WHERE student_id=@id AND date_set=CURDATE()";
+                MySqlCommand budgetCmd = new MySqlCommand(budgetQuery, conn);
+                budgetCmd.Parameters.AddWithValue("@id", studentId);
+                
+                using (var reader = budgetCmd.ExecuteReader())
+                {
+                    if (reader.Read())
+                    {
+                        budget = reader.GetDecimal("budget_amount");
+                        budgetRemaining = reader.GetDecimal("budget_remaining");
+                    }
+                }
+
+                // If budget_remaining is not set, calculate it
+                if (budgetRemaining == 0 && budget > 0)
+                {
+                    // Get total expenses for today
+                    string expensesQuery = "SELECT SUM(cost) FROM expenses WHERE student_id=@id AND date_added=CURDATE()";
+                    MySqlCommand expensesCmd = new MySqlCommand(expensesQuery, conn);
+                    expensesCmd.Parameters.AddWithValue("@id", studentId);
+                    object expensesResult = expensesCmd.ExecuteScalar();
+                    if (expensesResult != null && expensesResult != DBNull.Value)
+                    {
+                        totalExpenses = Convert.ToDecimal(expensesResult);
+                    }
+                    budgetRemaining = budget - totalExpenses;
+
+                    // Update budget_remaining in database
+                    conn.Close();
+                    conn.Open();
+                    string updateQuery = "UPDATE student_budget SET budget_remaining=@remaining WHERE student_id=@id AND date_set=CURDATE()";
+                    MySqlCommand updateCmd = new MySqlCommand(updateQuery, conn);
+                    updateCmd.Parameters.AddWithValue("@id", studentId);
+                    updateCmd.Parameters.AddWithValue("@remaining", budgetRemaining);
+                    updateCmd.ExecuteNonQuery();
+                }
+                else
+                {
+                    // Get total expenses for today to recalculate
+                    string expensesQuery = "SELECT SUM(cost) FROM expenses WHERE student_id=@id AND date_added=CURDATE()";
+                    MySqlCommand expensesCmd = new MySqlCommand(expensesQuery, conn);
+                    expensesCmd.Parameters.AddWithValue("@id", studentId);
+                    object expensesResult = expensesCmd.ExecuteScalar();
+                    if (expensesResult != null && expensesResult != DBNull.Value)
+                    {
+                        totalExpenses = Convert.ToDecimal(expensesResult);
+                    }
+                    budgetRemaining = budget - totalExpenses;
+
+                    // Update budget_remaining in database
+                    conn.Close();
+                    conn.Open();
+                    string updateQuery = "UPDATE student_budget SET budget_remaining=@remaining WHERE student_id=@id AND date_set=CURDATE()";
+                    MySqlCommand updateCmd = new MySqlCommand(updateQuery, conn);
+                    updateCmd.Parameters.AddWithValue("@id", studentId);
+                    updateCmd.Parameters.AddWithValue("@remaining", budgetRemaining);
+                    updateCmd.ExecuteNonQuery();
+                }
+            }
+
+            lblRemainingBudget.Text = $"₱{budgetRemaining:N2}";
+            
+            // Change color based on remaining budget
+            if (budgetRemaining < 0)
+            {
+                lblRemainingBudget.Foreground = Brushes.Red;
+            }
+            else if (budgetRemaining < budget * 0.2m && budget > 0)
+            {
+                lblRemainingBudget.Foreground = Brushes.Orange;
+            }
+            else
+            {
+                lblRemainingBudget.Foreground = new SolidColorBrush(Color.FromRgb(76, 175, 80)); // #4CAF50
+            }
+        }
+
+        #endregion
+
+        #region Expense Pie Chart
+
+        private void UpdateExpensePieChart()
+        {
+            decimal foodTotal = 0;
+            decimal transportationTotal = 0;
+            decimal othersTotal = 0;
+
+            using (var conn = DBHelper.GetConnection())
+            {
+                conn.Open();
+
+                // Get expenses from the last 7 days, grouped by category
+                string query = @"SELECT 
+                                    category,
+                                    SUM(cost) as total_cost
+                                FROM expenses 
+                                WHERE student_id = @id 
+                                AND date_added >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+                                GROUP BY category";
+
+                MySqlCommand cmd = new MySqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@id", studentId);
+
+                using (var reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        string category = reader.GetString("category");
+                        decimal categoryTotal = reader.GetDecimal("total_cost");
+
+                        switch (category.ToLower())
+                        {
+                            case "food":
+                                foodTotal = categoryTotal;
+                                break;
+                            case "transportation":
+                                transportationTotal = categoryTotal;
+                                break;
+                            case "others":
+                                othersTotal = categoryTotal;
+                                break;
+                        }
+                    }
+                }
+            }
+
+            decimal total = foodTotal + transportationTotal + othersTotal;
+
+            if (total > 0)
+            {
+                double foodPercent = Math.Round((double)(foodTotal / total * 100), 1);
+                double transportationPercent = Math.Round((double)(transportationTotal / total * 100), 1);
+                double othersPercent = Math.Round((double)(othersTotal / total * 100), 1);
+
+                // Update labels with amount and percentage: "₱amount | percentage%"
+                lblFoodInfo.Text = $"₱{foodTotal:N2} | {foodPercent}%";
+                lblTransportationInfo.Text = $"₱{transportationTotal:N2} | {transportationPercent}%";
+                lblOthersInfo.Text = $"₱{othersTotal:N2} | {othersPercent}%";
+
+                // Draw pie chart
+                DrawExpensePieChart(foodPercent, transportationPercent, othersPercent);
+            }
+            else
+            {
+                // No expenses - show empty state
+                lblFoodInfo.Text = "₱0.00 | 0%";
+                lblTransportationInfo.Text = "₱0.00 | 0%";
+                lblOthersInfo.Text = "₱0.00 | 0%";
+                DrawExpensePieChart(0, 0, 0);
+            }
+        }
+
+        private void DrawExpensePieChart(double foodPercent, double transportationPercent, double othersPercent)
+        {
+            const double radius = 100;
+            const double centerX = 100;
+            const double centerY = 100;
+
+            // Calculate angles
+            double foodAngle = (foodPercent / 100.0) * 360.0;
+            double transportationAngle = (transportationPercent / 100.0) * 360.0;
+            double othersAngle = (othersPercent / 100.0) * 360.0;
+
+            // Draw Food slice (Blue) - starts from top
+            if (foodPercent > 0)
+            {
+                double startAngle = -90; // Start from top
+                double endAngle = startAngle + foodAngle;
+
+                Point startPoint = new Point(centerX, centerY - radius);
+                Point endPoint = CalculatePointOnCircle(centerX, centerY, radius, endAngle);
+
+                PathFigure foodFigure = new PathFigure
+                {
+                    StartPoint = new Point(centerX, centerY),
+                    IsClosed = true
+                };
+
+                foodFigure.Segments.Add(new LineSegment(startPoint, true));
+                foodFigure.Segments.Add(new ArcSegment
+                {
+                    Point = endPoint,
+                    Size = new Size(radius, radius),
+                    SweepDirection = SweepDirection.Clockwise,
+                    IsLargeArc = foodAngle > 180
+                });
+
+                PathGeometry foodGeometry = new PathGeometry();
+                foodGeometry.Figures.Add(foodFigure);
+                pathFood.Data = foodGeometry;
+                pathFood.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                pathFood.Visibility = Visibility.Collapsed;
+            }
+
+            // Draw Transportation slice (Orange) - starts where Food ends
+            if (transportationPercent > 0)
+            {
+                double startAngle = -90 + foodAngle;
+                double endAngle = startAngle + transportationAngle;
+
+                Point startPoint = CalculatePointOnCircle(centerX, centerY, radius, startAngle);
+                Point endPoint = CalculatePointOnCircle(centerX, centerY, radius, endAngle);
+
+                PathFigure transportationFigure = new PathFigure
+                {
+                    StartPoint = new Point(centerX, centerY),
+                    IsClosed = true
+                };
+
+                transportationFigure.Segments.Add(new LineSegment(startPoint, true));
+                transportationFigure.Segments.Add(new ArcSegment
+                {
+                    Point = endPoint,
+                    Size = new Size(radius, radius),
+                    SweepDirection = SweepDirection.Clockwise,
+                    IsLargeArc = transportationAngle > 180
+                });
+
+                PathGeometry transportationGeometry = new PathGeometry();
+                transportationGeometry.Figures.Add(transportationFigure);
+                pathTransportation.Data = transportationGeometry;
+                pathTransportation.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                pathTransportation.Visibility = Visibility.Collapsed;
+            }
+
+            // Draw Others slice (Purple) - starts where Transportation ends
+            if (othersPercent > 0)
+            {
+                double startAngle = -90 + foodAngle + transportationAngle;
+                double endAngle = startAngle + othersAngle;
+
+                Point startPoint = CalculatePointOnCircle(centerX, centerY, radius, startAngle);
+                Point endPoint = CalculatePointOnCircle(centerX, centerY, radius, endAngle);
+
+                PathFigure othersFigure = new PathFigure
+                {
+                    StartPoint = new Point(centerX, centerY),
+                    IsClosed = true
+                };
+
+                othersFigure.Segments.Add(new LineSegment(startPoint, true));
+                othersFigure.Segments.Add(new ArcSegment
+                {
+                    Point = endPoint,
+                    Size = new Size(radius, radius),
+                    SweepDirection = SweepDirection.Clockwise,
+                    IsLargeArc = othersAngle > 180
+                });
+
+                PathGeometry othersGeometry = new PathGeometry();
+                othersGeometry.Figures.Add(othersFigure);
+                pathOthers.Data = othersGeometry;
+                pathOthers.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                pathOthers.Visibility = Visibility.Collapsed;
+            }
+
+            // If no expenses, show a full circle (gray)
+            if (foodPercent == 0 && transportationPercent == 0 && othersPercent == 0)
+            {
+                PathFigure emptyFigure = new PathFigure
+                {
+                    StartPoint = new Point(centerX, centerY),
+                    IsClosed = true
+                };
+
+                emptyFigure.Segments.Add(new LineSegment(new Point(centerX, centerY - radius), true));
+                emptyFigure.Segments.Add(new ArcSegment
+                {
+                    Point = new Point(centerX, centerY - radius),
+                    Size = new Size(radius, radius),
+                    SweepDirection = SweepDirection.Clockwise,
+                    IsLargeArc = true
+                });
+
+                PathGeometry emptyGeometry = new PathGeometry();
+                emptyGeometry.Figures.Add(emptyFigure);
+                pathOthers.Data = emptyGeometry;
+                pathOthers.Fill = Brushes.LightGray;
+                pathOthers.Visibility = Visibility.Visible;
+            }
         }
 
         #endregion
