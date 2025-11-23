@@ -276,6 +276,37 @@ namespace SP_FMS
             SaveProgressSilent(); // Automatically update todo_progress when adding task
         }
 
+        private void RemoveTask_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not Button button || button.DataContext is not TodoTask task) return;
+
+            MessageBoxResult result = MessageBox.Show(
+                $"Are you sure you want to remove the task '{task.task_name}'?",
+                "Remove Task",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question);
+
+            if (result != MessageBoxResult.Yes) return;
+
+            using (var conn = DBHelper.GetConnection())
+            {
+                conn.Open();
+
+                string query = "DELETE FROM todo_tasks WHERE task_id=@taskId AND student_id=@studentId";
+                MySqlCommand cmd = new MySqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@taskId", task.task_id);
+                cmd.Parameters.AddWithValue("@studentId", studentId);
+                cmd.ExecuteNonQuery();
+            }
+
+            LoadTasks();
+            LoadCompletedTasks();
+            UpdatePieChart();
+            SaveProgressSilent();
+
+            MessageBox.Show("Task removed successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
         private void SaveProgress()
         {
             SaveProgressSilent();
@@ -1255,6 +1286,10 @@ namespace SP_FMS
 
         #endregion
 
+        private void dgTodo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+
+        }
     }
 }
 
