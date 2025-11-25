@@ -1,4 +1,4 @@
-﻿using MySql.Data.MySqlClient;
+using MySql.Data.MySqlClient;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -27,6 +27,9 @@ namespace SP_FMS
             // Set welcome info
             lblWelcome.Text = "Welcome, " + currentStudent.FullName;
             lblDetails.Text = $"Course: {currentStudent.Course}\nEmail: {currentStudent.Email}\nContact: {currentStudent.Contact}";
+            lblCourse.Text = currentStudent.Course;
+            lblEmail.Text = currentStudent.Email;
+            lblContact.Text = currentStudent.Contact;
 
             // Watermark behavior
             txtNewTask.GotFocus += TxtNewTask_GotFocus;
@@ -39,15 +42,26 @@ namespace SP_FMS
             txtCost.LostFocus += TxtCost_LostFocus;
 
             EnsureCompletionDateColumn();   // ensure completion_date column exists
+            EnsureCreatedDateColumn();      // ensure created_date column exists
             EnsureFinancialTables();        // ensure financial tables exist
+            EnsureRecordsTable();           // ensure weekly_records table exists
+            CreateWeeklyRecordIfNeeded();   // snapshot last 7 days into weekly_records if needed
             LoadTasks();                    // load tasks for this student
             LoadCompletedTasks();           // load completed tasks for this student
             CleanupOldCompletedTasks();     // remove completed tasks older than 7 days
+            CleanupOldTodoProgress();       // remove todo_progress records older than 7 days
+            CleanupOldExpenses();           // remove expenses older than 7 days
             UpdatePieChart();               // update pie chart with 7-day statistics
             LoadExpenses();                 // load expenses for this student (today only)
             LoadBudget();                   // load budget for this student
             UpdateRemainingBudget();        // calculate and display remaining budget
             UpdateExpensePieChart();        // update expense pie chart with 7-day statistics
+            UpdateRecordsTab();             // update 7-day records tab
+            LoadWeeklyRecords();            // load weekly records rows
+            if (colWeek != null)
+            {
+                colWeek.Header = "Week (" + DateTime.Today.Year + ")";
+            }
         }
 
         #region To-Do List Methods
@@ -130,6 +144,7 @@ namespace SP_FMS
             LoadCompletedTasks();
             CleanupOldCompletedTasks(); // Clean up old tasks after saving
             UpdatePieChart(); // Update pie chart after saving changes
+            UpdateRecordsTab();
         }
 
 
@@ -246,6 +261,7 @@ namespace SP_FMS
             LoadCompletedTasks();
             UpdatePieChart(); // Update pie chart after restoring task
             SaveProgressSilent(); // Automatically update todo_progress when restoring task
+            UpdateRecordsTab();
         }
 
 
@@ -261,7 +277,9 @@ namespace SP_FMS
             {
                 conn.Open();
 
-                string query = "INSERT INTO todo_tasks(student_id, task_name, is_completed) VALUES (@id, @task, 0)";
+                EnsureCreatedDateColumn();
+
+                string query = "INSERT INTO todo_tasks(student_id, task_name, is_completed, created_date) VALUES (@id, @task, 0, CURDATE())";
                 MySqlCommand cmd = new MySqlCommand(query, conn);
                 cmd.Parameters.AddWithValue("@id", studentId);
                 cmd.Parameters.AddWithValue("@task", txtNewTask.Text);
@@ -274,6 +292,7 @@ namespace SP_FMS
             LoadTasks();
             UpdatePieChart(); // Update pie chart after adding task
             SaveProgressSilent(); // Automatically update todo_progress when adding task
+            UpdateRecordsTab();
         }
 
         private void RemoveTask_Click(object sender, RoutedEventArgs e)
@@ -303,6 +322,7 @@ namespace SP_FMS
             LoadCompletedTasks();
             UpdatePieChart();
             SaveProgressSilent();
+            UpdateRecordsTab();
 
             MessageBox.Show("Task removed successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
         }
@@ -386,6 +406,27 @@ namespace SP_FMS
             }
         }
 
+        private void EnsureCreatedDateColumn()
+        {
+            using (var conn = DBHelper.GetConnection())
+            {
+                conn.Open();
+                string checkQuery = @"SELECT COUNT(*) 
+                                      FROM INFORMATION_SCHEMA.COLUMNS 
+                                      WHERE TABLE_SCHEMA = DATABASE() 
+                                      AND TABLE_NAME = 'todo_tasks' 
+                                      AND COLUMN_NAME = 'created_date'";
+                MySqlCommand checkCmd = new MySqlCommand(checkQuery, conn);
+                int columnExists = Convert.ToInt32(checkCmd.ExecuteScalar());
+                if (columnExists == 0)
+                {
+                    string alterQuery = "ALTER TABLE todo_tasks ADD COLUMN created_date DATE NULL";
+                    MySqlCommand alterCmd = new MySqlCommand(alterQuery, conn);
+                    alterCmd.ExecuteNonQuery();
+                }
+            }
+        }
+
         private void CleanupOldCompletedTasks()
         {
             using (var conn = DBHelper.GetConnection())
@@ -401,6 +442,34 @@ namespace SP_FMS
                                        AND is_completed=1 
                                        AND completion_date IS NOT NULL 
                                        AND completion_date < DATE_SUB(CURDATE(), INTERVAL 7 DAY)";
+                MySqlCommand deleteCmd = new MySqlCommand(deleteQuery, conn);
+                deleteCmd.Parameters.AddWithValue("@id", studentId);
+                deleteCmd.ExecuteNonQuery();
+            }
+        }
+
+        private void CleanupOldTodoProgress()
+        {
+            using (var conn = DBHelper.GetConnection())
+            {
+                conn.Open();
+                string deleteQuery = @"DELETE FROM todo_progress
+                                       WHERE student_id=@id
+                                       AND date_recorded < DATE_SUB(CURDATE(), INTERVAL 7 DAY)";
+                MySqlCommand deleteCmd = new MySqlCommand(deleteQuery, conn);
+                deleteCmd.Parameters.AddWithValue("@id", studentId);
+                deleteCmd.ExecuteNonQuery();
+            }
+        }
+
+        private void CleanupOldExpenses()
+        {
+            using (var conn = DBHelper.GetConnection())
+            {
+                conn.Open();
+                string deleteQuery = @"DELETE FROM expenses
+                                       WHERE student_id=@id
+                                       AND date_added < DATE_SUB(CURDATE(), INTERVAL 7 DAY)";
                 MySqlCommand deleteCmd = new MySqlCommand(deleteQuery, conn);
                 deleteCmd.Parameters.AddWithValue("@id", studentId);
                 deleteCmd.ExecuteNonQuery();
@@ -432,6 +501,7 @@ namespace SP_FMS
         {
             int completedCount = 0;
             int uncompletedCount = 0;
+            DateTime weekStart = GetWeekStartTuesday(DateTime.Today);
 
             using (var conn = DBHelper.GetConnection())
             {
@@ -440,14 +510,14 @@ namespace SP_FMS
                 // Get tasks from the last 7 days
                 // Count completed tasks from last 7 days and all uncompleted tasks
                 string query = @"SELECT 
-                                    SUM(CASE WHEN is_completed = 1 AND completion_date >= DATE_SUB(CURDATE(), INTERVAL 7 DAY) THEN 1 ELSE 0 END) as completed,
-                                    SUM(CASE WHEN is_completed = 0 THEN 1 ELSE 0 END) as uncompleted
+                                    SUM(CASE WHEN is_completed = 1 AND completion_date >= @start THEN 1 ELSE 0 END) as completed,
+                                    SUM(CASE WHEN is_completed = 0 AND (created_date IS NOT NULL AND created_date >= @start) THEN 1 ELSE 0 END) as uncompleted
                                 FROM todo_tasks 
-                                WHERE student_id = @id 
-                                AND (is_completed = 0 OR (is_completed = 1 AND completion_date >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)))";
+                                WHERE student_id = @id";
 
                 MySqlCommand cmd = new MySqlCommand(query, conn);
                 cmd.Parameters.AddWithValue("@id", studentId);
+                cmd.Parameters.AddWithValue("@start", weekStart);
 
                 using (var reader = cmd.ExecuteReader())
                 {
@@ -466,13 +536,14 @@ namespace SP_FMS
                     
                     // Simple fallback query
                     string fallbackQuery = @"SELECT 
-                                                SUM(CASE WHEN is_completed = 1 THEN 1 ELSE 0 END) as completed,
-                                                SUM(CASE WHEN is_completed = 0 THEN 1 ELSE 0 END) as uncompleted
+                                                SUM(CASE WHEN is_completed = 1 AND completion_date >= @start THEN 1 ELSE 0 END) as completed,
+                                                SUM(CASE WHEN is_completed = 0 AND (created_date IS NOT NULL AND created_date >= @start) THEN 1 ELSE 0 END) as uncompleted
                                             FROM todo_tasks 
                                             WHERE student_id = @id";
                     
                     MySqlCommand fallbackCmd = new MySqlCommand(fallbackQuery, conn);
                     fallbackCmd.Parameters.AddWithValue("@id", studentId);
+                    fallbackCmd.Parameters.AddWithValue("@start", weekStart);
                     
                     using (var reader = fallbackCmd.ExecuteReader())
                     {
@@ -950,6 +1021,7 @@ namespace SP_FMS
             LoadExpenses();
             UpdateRemainingBudget();
             UpdateExpensePieChart(); // Update expense pie chart after adding expense
+            UpdateRecordsTab();
         }
 
         private void RemoveExpense_Click(object sender, RoutedEventArgs e)
@@ -977,6 +1049,7 @@ namespace SP_FMS
                     LoadExpenses();
                     UpdateRemainingBudget();
                     UpdateExpensePieChart(); // Update expense pie chart after removing expense
+                    UpdateRecordsTab();
                     MessageBox.Show("Expense removed successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
@@ -1079,6 +1152,7 @@ namespace SP_FMS
             decimal foodTotal = 0;
             decimal transportationTotal = 0;
             decimal othersTotal = 0;
+            DateTime weekStart = GetWeekStartTuesday(DateTime.Today);
 
             using (var conn = DBHelper.GetConnection())
             {
@@ -1090,11 +1164,12 @@ namespace SP_FMS
                                     SUM(cost) as total_cost
                                 FROM expenses 
                                 WHERE student_id = @id 
-                                AND date_added >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+                                AND date_added >= @start
                                 GROUP BY category";
 
                 MySqlCommand cmd = new MySqlCommand(query, conn);
                 cmd.Parameters.AddWithValue("@id", studentId);
+                cmd.Parameters.AddWithValue("@start", weekStart);
 
                 using (var reader = cmd.ExecuteReader())
                 {
@@ -1143,6 +1218,8 @@ namespace SP_FMS
                 lblOthersInfo.Text = "₱0.00 | 0%";
                 DrawExpensePieChart(0, 0, 0);
             }
+            UpdateRecordsTab();
+            LoadWeeklyRecords();
         }
 
         private void DrawExpensePieChart(double foodPercent, double transportationPercent, double othersPercent)
@@ -1284,15 +1361,331 @@ namespace SP_FMS
             }
         }
 
+        private void UpdateRecordsTab()
+        {
+            double todoCompletedPercent = 0;
+            double todoUncompletedPercent = 0;
+
+            int completedCount = 0;
+            int uncompletedCount = 0;
+            DateTime weekStart = GetWeekStartTuesday(DateTime.Today);
+            using (var conn = DBHelper.GetConnection())
+            {
+                conn.Open();
+                string query = @"SELECT 
+                                    SUM(CASE WHEN is_completed = 1 AND completion_date >= @start THEN 1 ELSE 0 END) as completed,
+                                    SUM(CASE WHEN is_completed = 0 AND (created_date IS NOT NULL AND created_date >= @start) THEN 1 ELSE 0 END) as uncompleted
+                                  FROM todo_tasks 
+                                  WHERE student_id = @id";
+                MySqlCommand cmd = new MySqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@id", studentId);
+                cmd.Parameters.AddWithValue("@start", weekStart);
+                using (var reader = cmd.ExecuteReader())
+                {
+                    if (reader.Read())
+                    {
+                        completedCount = reader.IsDBNull("completed") ? 0 : reader.GetInt32("completed");
+                        uncompletedCount = reader.IsDBNull("uncompleted") ? 0 : reader.GetInt32("uncompleted");
+                    }
+                }
+            }
+            int todoTotal = completedCount + uncompletedCount;
+            if (todoTotal > 0)
+            {
+                todoCompletedPercent = Math.Round((double)completedCount / todoTotal * 100, 1);
+                todoUncompletedPercent = Math.Round((double)uncompletedCount / todoTotal * 100, 1);
+            }
+            txtRecordTodoCompletedPercent.Text = todoCompletedPercent.ToString("F1") + "%";
+            txtRecordTodoUncompletedPercent.Text = todoUncompletedPercent.ToString("F1") + "%";
+
+            decimal foodTotal = 0;
+            decimal transportationTotal = 0;
+            decimal othersTotal = 0;
+            using (var conn = DBHelper.GetConnection())
+            {
+                conn.Open();
+                string query = @"SELECT category, SUM(cost) as total_cost FROM expenses 
+                                  WHERE student_id = @id AND date_added >= @start
+                                  GROUP BY category";
+                MySqlCommand cmd = new MySqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@id", studentId);
+                cmd.Parameters.AddWithValue("@start", weekStart);
+                using (var reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        string category = reader.GetString("category");
+                        decimal total = reader.GetDecimal("total_cost");
+                        switch (category.ToLower())
+                        {
+                            case "food":
+                                foodTotal = total;
+                                break;
+                            case "transportation":
+                                transportationTotal = total;
+                                break;
+                            case "others":
+                                othersTotal = total;
+                                break;
+                        }
+                    }
+                }
+            }
+            decimal expTotal = foodTotal + transportationTotal + othersTotal;
+            double foodPercent = 0, transportationPercent = 0, othersPercent = 0;
+            if (expTotal > 0)
+            {
+                foodPercent = Math.Round((double)(foodTotal / expTotal * 100), 1);
+                transportationPercent = Math.Round((double)(transportationTotal / expTotal * 100), 1);
+                othersPercent = Math.Round((double)(othersTotal / expTotal * 100), 1);
+            }
+            txtRecordFoodPercent.Text = foodPercent.ToString("F1") + "%";
+            txtRecordTransportationPercent.Text = transportationPercent.ToString("F1") + "%";
+            txtRecordOthersPercent.Text = othersPercent.ToString("F1") + "%";
+        }
+
         #endregion
 
         private void dgTodo_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
 
         }
+
+        private void EnsureRecordsTable()
+        {
+            using (var conn = DBHelper.GetConnection())
+            {
+                conn.Open();
+                string createTable = @"CREATE TABLE IF NOT EXISTS weekly_records (
+                    record_id INT AUTO_INCREMENT PRIMARY KEY,
+                    student_id VARCHAR(20) NOT NULL,
+                    week_start_date DATE NOT NULL,
+                    week_end_date DATE NOT NULL,
+                    completed_tasks INT NOT NULL,
+                    total_tasks INT NOT NULL,
+                    food_total DECIMAL(10,2) NOT NULL DEFAULT 0,
+                    food_last_date DATE NULL,
+                    transportation_total DECIMAL(10,2) NOT NULL DEFAULT 0,
+                    transportation_last_date DATE NULL,
+                    others_total DECIMAL(10,2) NOT NULL DEFAULT 0,
+                    others_last_date DATE NULL,
+                    total_budget DECIMAL(10,2) NOT NULL DEFAULT 0,
+                    budget_last_date DATE NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE KEY unique_student_week (student_id, week_end_date),
+                    FOREIGN KEY (student_id) REFERENCES students(id)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
+                MySqlCommand cmd = new MySqlCommand(createTable, conn);
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+        private void CreateWeeklyRecordIfNeeded()
+        {
+            using (var conn = DBHelper.GetConnection())
+            {
+                conn.Open();
+
+                // Anchor weeks on Tuesday: snapshot previous Tue–Mon window.
+                DateTime today = DateTime.Today;
+                DateTime currentWeekStart = GetWeekStartTuesday(today);
+                DateTime prevWeekStart = currentWeekStart.AddDays(-7);
+                DateTime prevWeekEnd = currentWeekStart.AddDays(-1);
+
+                // If a snapshot for previous week is missing, create it.
+                string existsQuery = @"SELECT COUNT(*) FROM weekly_records WHERE student_id=@id AND week_end_date=@we";
+                MySqlCommand existsCmd = new MySqlCommand(existsQuery, conn);
+                existsCmd.Parameters.AddWithValue("@id", studentId);
+                existsCmd.Parameters.AddWithValue("@we", prevWeekEnd);
+                int exists = Convert.ToInt32(existsCmd.ExecuteScalar());
+                if (exists > 0) return;
+
+                DateTime weekStart = prevWeekStart;
+                DateTime weekEnd = prevWeekEnd;
+
+                // Latest todo_progress within week
+                int completed = 0, total = 0; DateTime? todoDate = null;
+                string todoQuery = @"SELECT completed_tasks, total_tasks, date_recorded
+                                      FROM todo_progress
+                                      WHERE student_id=@id AND date_recorded BETWEEN @start AND @end
+                                      ORDER BY date_recorded DESC LIMIT 1";
+                MySqlCommand todoCmd = new MySqlCommand(todoQuery, conn);
+                todoCmd.Parameters.AddWithValue("@id", studentId);
+                todoCmd.Parameters.AddWithValue("@start", weekStart);
+                todoCmd.Parameters.AddWithValue("@end", weekEnd);
+                using (var reader = todoCmd.ExecuteReader())
+                {
+                    if (reader.Read())
+                    {
+                        completed = reader.GetInt32("completed_tasks");
+                        total = reader.GetInt32("total_tasks");
+                        todoDate = reader.GetDateTime("date_recorded");
+                    }
+                }
+
+                // Expenses totals and last dates
+                decimal foodTotal = 0, transTotal = 0, othersTotal = 0;
+                DateTime? foodDate = null, transDate = null, othersDate = null;
+
+                string expFood = @"SELECT COALESCE(SUM(cost),0) total, MAX(date_added) last_date FROM expenses 
+                                   WHERE student_id=@id AND category='Food' AND date_added BETWEEN @start AND @end";
+                using (var cmdFood = new MySqlCommand(expFood, conn))
+                {
+                    cmdFood.Parameters.AddWithValue("@id", studentId);
+                    cmdFood.Parameters.AddWithValue("@start", weekStart);
+                    cmdFood.Parameters.AddWithValue("@end", weekEnd);
+                    using (var r = cmdFood.ExecuteReader())
+                    {
+                        if (r.Read())
+                        {
+                            foodTotal = r.IsDBNull("total") ? 0 : r.GetDecimal("total");
+                            if (!r.IsDBNull("last_date")) foodDate = r.GetDateTime("last_date");
+                        }
+                    }
+                }
+
+                string expTrans = @"SELECT COALESCE(SUM(cost),0) total, MAX(date_added) last_date FROM expenses 
+                                    WHERE student_id=@id AND category='Transportation' AND date_added BETWEEN @start AND @end";
+                using (var cmdTrans = new MySqlCommand(expTrans, conn))
+                {
+                    cmdTrans.Parameters.AddWithValue("@id", studentId);
+                    cmdTrans.Parameters.AddWithValue("@start", weekStart);
+                    cmdTrans.Parameters.AddWithValue("@end", weekEnd);
+                    using (var r = cmdTrans.ExecuteReader())
+                    {
+                        if (r.Read())
+                        {
+                            transTotal = r.IsDBNull("total") ? 0 : r.GetDecimal("total");
+                            if (!r.IsDBNull("last_date")) transDate = r.GetDateTime("last_date");
+                        }
+                    }
+                }
+
+                string expOthers = @"SELECT COALESCE(SUM(cost),0) total, MAX(date_added) last_date FROM expenses 
+                                     WHERE student_id=@id AND category='Others' AND date_added BETWEEN @start AND @end";
+                using (var cmdOthers = new MySqlCommand(expOthers, conn))
+                {
+                    cmdOthers.Parameters.AddWithValue("@id", studentId);
+                    cmdOthers.Parameters.AddWithValue("@start", weekStart);
+                    cmdOthers.Parameters.AddWithValue("@end", weekEnd);
+                    using (var r = cmdOthers.ExecuteReader())
+                    {
+                        if (r.Read())
+                        {
+                            othersTotal = r.IsDBNull("total") ? 0 : r.GetDecimal("total");
+                            if (!r.IsDBNull("last_date")) othersDate = r.GetDateTime("last_date");
+                        }
+                    }
+                }
+
+                // Latest budget within week
+                decimal totalBudget = 0; DateTime? budgetDate = null;
+                string budgetQuery = @"SELECT budget_amount, date_set FROM student_budget 
+                                       WHERE student_id=@id AND date_set BETWEEN @start AND @end
+                                       ORDER BY date_set DESC LIMIT 1";
+                MySqlCommand budgetCmd = new MySqlCommand(budgetQuery, conn);
+                budgetCmd.Parameters.AddWithValue("@id", studentId);
+                budgetCmd.Parameters.AddWithValue("@start", weekStart);
+                budgetCmd.Parameters.AddWithValue("@end", weekEnd);
+                using (var reader = budgetCmd.ExecuteReader())
+                {
+                    if (reader.Read())
+                    {
+                        totalBudget = reader.GetDecimal("budget_amount");
+                        budgetDate = reader.GetDateTime("date_set");
+                    }
+                }
+
+                // Insert weekly record
+                string insert = @"INSERT INTO weekly_records (
+                                    student_id, week_start_date, week_end_date, completed_tasks, total_tasks,
+                                    food_total, food_last_date, transportation_total, transportation_last_date,
+                                    others_total, others_last_date, total_budget, budget_last_date)
+                                  VALUES (
+                                    @id, @ws, @we, @completed, @total,
+                                    @food, @foodDate, @trans, @transDate,
+                                    @others, @othersDate, @budget, @budgetDate)";
+                MySqlCommand insertCmd = new MySqlCommand(insert, conn);
+                insertCmd.Parameters.AddWithValue("@id", studentId);
+                insertCmd.Parameters.AddWithValue("@ws", weekStart);
+                insertCmd.Parameters.AddWithValue("@we", weekEnd);
+                insertCmd.Parameters.AddWithValue("@completed", completed);
+                insertCmd.Parameters.AddWithValue("@total", total);
+                insertCmd.Parameters.AddWithValue("@food", foodTotal);
+                insertCmd.Parameters.AddWithValue("@foodDate", (object?)foodDate ?? DBNull.Value);
+                insertCmd.Parameters.AddWithValue("@trans", transTotal);
+                insertCmd.Parameters.AddWithValue("@transDate", (object?)transDate ?? DBNull.Value);
+                insertCmd.Parameters.AddWithValue("@others", othersTotal);
+                insertCmd.Parameters.AddWithValue("@othersDate", (object?)othersDate ?? DBNull.Value);
+                insertCmd.Parameters.AddWithValue("@budget", totalBudget);
+                insertCmd.Parameters.AddWithValue("@budgetDate", (object?)budgetDate ?? DBNull.Value);
+
+                try { insertCmd.ExecuteNonQuery(); } catch { /* ignore if unique already exists */ }
+            }
+        }
+
+        private class WeeklyRecordRow
+        {
+            public string Week { get; set; } = string.Empty;
+            public string CompletedTaskDisplay { get; set; } = string.Empty;
+            public string TotalTaskDisplay { get; set; } = string.Empty;
+            public string FoodExpenseDisplay { get; set; } = string.Empty;
+            public string TransportationExpenseDisplay { get; set; } = string.Empty;
+            public string OthersExpenseDisplay { get; set; } = string.Empty;
+            public string TotalBudgetDisplay { get; set; } = string.Empty;
+        }
+
+        private void LoadWeeklyRecords()
+        {
+            List<WeeklyRecordRow> rows = new List<WeeklyRecordRow>();
+            using (var conn = DBHelper.GetConnection())
+            {
+                conn.Open();
+                string q = @"SELECT week_start_date, week_end_date, completed_tasks, total_tasks,
+                                   food_total, food_last_date, transportation_total, transportation_last_date,
+                                   others_total, others_last_date, total_budget, budget_last_date
+                              FROM weekly_records WHERE student_id=@id ORDER BY week_end_date DESC";
+                MySqlCommand cmd = new MySqlCommand(q, conn);
+                cmd.Parameters.AddWithValue("@id", studentId);
+                using (var r = cmd.ExecuteReader())
+                {
+                    while (r.Read())
+                    {
+                        DateTime ws = r.GetDateTime("week_start_date");
+                        DateTime we = r.GetDateTime("week_end_date");
+
+                        int completed = r.GetInt32("completed_tasks");
+                        int total = r.GetInt32("total_tasks");
+                        decimal food = r.GetDecimal("food_total");
+                        decimal trans = r.GetDecimal("transportation_total");
+                        decimal others = r.GetDecimal("others_total");
+                        decimal budget = r.GetDecimal("total_budget");
+
+                        DateTime? foodDate = r.IsDBNull(r.GetOrdinal("food_last_date")) ? null : r.GetDateTime("food_last_date");
+                        DateTime? transDate = r.IsDBNull(r.GetOrdinal("transportation_last_date")) ? null : r.GetDateTime("transportation_last_date");
+                        DateTime? othersDate = r.IsDBNull(r.GetOrdinal("others_last_date")) ? null : r.GetDateTime("others_last_date");
+                        DateTime? budgetDate = r.IsDBNull(r.GetOrdinal("budget_last_date")) ? null : r.GetDateTime("budget_last_date");
+
+                        rows.Add(new WeeklyRecordRow
+                        {
+                            Week = ws.ToString("MM-dd") + " → " + we.ToString("MM-dd"),
+                            CompletedTaskDisplay = completed + ", " + we.ToString("yyyy-MM-dd"),
+                            TotalTaskDisplay = total + ", " + we.ToString("yyyy-MM-dd"),
+                            FoodExpenseDisplay = "₱" + food.ToString("N0") + (foodDate != null ? ", " + foodDate.Value.ToString("yyyy-MM-dd") : ""),
+                            TransportationExpenseDisplay = "₱" + trans.ToString("N0") + (transDate != null ? ", " + transDate.Value.ToString("yyyy-MM-dd") : ""),
+                            OthersExpenseDisplay = "₱" + others.ToString("N0") + (othersDate != null ? ", " + othersDate.Value.ToString("yyyy-MM-dd") : ""),
+                            TotalBudgetDisplay = "₱" + budget.ToString("N0") + (budgetDate != null ? ", " + budgetDate.Value.ToString("yyyy-MM-dd") : "")
+                        });
+                    }
+                }
+            }
+            dgWeeklyRecords.ItemsSource = rows;
+        }
+
+        private DateTime GetWeekStartTuesday(DateTime date)
+        {
+            int daysSinceTuesday = ((int)date.DayOfWeek - (int)DayOfWeek.Tuesday + 7) % 7;
+            return date.AddDays(-daysSinceTuesday);
+        }
     }
 }
-
-
-  
-

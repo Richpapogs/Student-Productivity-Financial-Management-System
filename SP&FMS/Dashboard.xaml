@@ -1,4 +1,4 @@
-﻿<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:av="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="av" x:Class="SP_FMS.Dashboard" WindowStartupLocation="CenterScreen" Width="1009" Title="Student Dashboard" Height="828" Background="#0E1726"
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:av="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="av" x:Class="SP_FMS.Dashboard" WindowStartupLocation="CenterScreen" Width="1009" Title="Student Dashboard" Height="828" Background="#0E1726" FontFamily="Segoe UI"
 >
     <Grid Margin="20"
 >
@@ -11,7 +11,7 @@
             <TabControl Width="965" Padding="10" Height="646" FontSize="14" Foreground="White" BorderThickness="0" Background="#0E1726"
 >
                 <!-- Profile Tab -->
-                <TabItem Header="Profile" Margin="32,1,-174,-3"
+                <TabItem Header="Profile" Margin="31,6,-143,-8"
 >
                     <Grid Margin="10,0,10,0" Height="575"
 >
@@ -23,65 +23,92 @@
                             <ColumnDefinition Width="1*"/>
                             <ColumnDefinition Width="1*"/>
                         </Grid.ColumnDefinitions>
-                        <!-- Personal Info -->
-                        <Border Padding="20" Margin="0,0,10,10" CornerRadius="10" Background="White"
->
-                            <StackPanel Margin="0,0,0,-20"
->
-                                <TextBlock Text="Personal Information"
-           Margin="0,0,0,15"
-           FontSize="18"
-           FontWeight="Bold"
-           Foreground="Black"
-           HorizontalAlignment="Center"/>
+                        <Border Padding="20" Margin="0,0,10,10" CornerRadius="12" Background="#E8EDF6">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="60"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
 
-                                <TextBlock x:Name="lblWelcome"
-           Margin="0,0,0,20"
-           FontSize="18"
-           FontWeight="Bold"
-           Foreground="Black"
-           TextAlignment="Left"/>
+                                <Ellipse Grid.Row="0" Grid.Column="0" Width="40" Height="40" Fill="#6A8AFF" Margin="0,0,10,0"/>
+                                <TextBlock Grid.Row="0" Grid.Column="1" Text="Personal Information" FontSize="18" FontWeight="Bold" Foreground="#172B4D" VerticalAlignment="Center"/>
 
-                                <TextBlock x:Name="lblDetails"
-           Margin="0,0,0,20"
-           FontSize="16"
-           Foreground="Black"
-           TextAlignment="Left"
-           TextWrapping="Wrap"/>
+                                <TextBlock x:Name="lblWelcome" Grid.Row="1" Grid.ColumnSpan="2" Margin="0,10,0,10" FontSize="16" FontWeight="Bold" Foreground="#172B4D"/>
 
-                                <!-- Change Password Link -->
-                                <TextBlock x:Name="txtChangePassword" 
-                                           Text="Change Password" 
-                                           FontSize="14" 
-                                           Foreground="Black"
-                                           Cursor="Hand"
-                                           HorizontalAlignment="Center"
-                                           MouseLeftButtonDown="ChangePassword_Click"
-                                           MouseEnter="ChangePassword_MouseEnter"
-                                           MouseLeave="ChangePassword_MouseLeave"
-                                           Margin="70"/>
-
-                            </StackPanel>
+                                <StackPanel Grid.Row="2" Grid.ColumnSpan="2">
+                                    <Grid Margin="0,0,0,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="44"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Border Grid.Column="0" Background="#2AC5B3" CornerRadius="8" Width="36" Height="36" HorizontalAlignment="Left">
+                                            <TextBlock Text="📚" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="16"/>
+                                        </Border>
+                                        <Border Grid.Column="1" Background="White" CornerRadius="8" Padding="12,8">
+                                            <StackPanel>
+                                                <TextBlock Text="Course" Foreground="#6B7280" FontSize="12"/>
+                                                <TextBlock x:Name="lblCourse" Foreground="#111827" FontSize="14" FontWeight="SemiBold"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </Grid>
+                                    <Grid Margin="0,0,0,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="44"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Border Grid.Column="0" Background="#2C7BE5" CornerRadius="8" Width="36" Height="36" HorizontalAlignment="Left">
+                                            <TextBlock Text="📧" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="16"/>
+                                        </Border>
+                                        <Border Grid.Column="1" Background="White" CornerRadius="8" Padding="12,8">
+                                            <StackPanel>
+                                                <TextBlock Text="Email" Foreground="#6B7280" FontSize="12"/>
+                                                <TextBlock x:Name="lblEmail" Foreground="#111827" FontSize="14" FontWeight="SemiBold"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </Grid>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="44"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Border Grid.Column="0" Background="#8B5CF6" CornerRadius="8" Width="36" Height="36" HorizontalAlignment="Left">
+                                            <TextBlock Text="☎" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="16"/>
+                                        </Border>
+                                        <Border Grid.Column="1" Background="White" CornerRadius="8" Padding="12,8">
+                                            <StackPanel>
+                                                <TextBlock Text="Contact" Foreground="#6B7280" FontSize="12"/>
+                                                <TextBlock x:Name="lblContact" Foreground="#111827" FontSize="14" FontWeight="SemiBold"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </Grid>
+                                    <TextBlock x:Name="lblDetails" Visibility="Collapsed"/>
+                                </StackPanel>
+                                <TextBlock x:Name="txtChangePassword" Grid.Row="3" Text="Change Password" FontSize="14" Foreground="#2C7BE5" Cursor="Hand" HorizontalAlignment="Left" Margin="92,20,0,-3" MouseLeftButtonDown="ChangePassword_Click" MouseEnter="ChangePassword_MouseEnter" MouseLeave="ChangePassword_MouseLeave" Grid.Column="1"/>
+                            </Grid>
                         </Border>
                         <!-- Notes -->
-                        <Border Padding="20" Margin="10,0,0,10" Grid.Column="1" CornerRadius="10" Background="#FFFACD"
->
-                            <TextBox 
-    x:Name="txtNotes"
-    Text="Add your notes here..."
-    TextWrapping="Wrap"
-    FontSize="13"
-    BorderThickness="0"
-    Background="Transparent"
-    AcceptsReturn="True"
-    Foreground="Gray"
-    GotFocus="txtNotes_GotFocus"
-    LostFocus="txtNotes_LostFocus"/>
-
+                        <Border Padding="20" Margin="10,0,0,10" Grid.Column="1" CornerRadius="12" Background="#FFF3C4">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="✎" FontSize="14"/>
+                                    <TextBlock Text="Add your notes here..." FontSize="14" FontWeight="Bold" Foreground="#3F3F46" Margin="6,0,0,0"/>
+                                </StackPanel>
+                                <TextBox Grid.Row="1" x:Name="txtNotes" Text="Add your notes here..." TextWrapping="Wrap" FontSize="13" BorderThickness="0" Background="Transparent" AcceptsReturn="True" Foreground="Gray" GotFocus="txtNotes_GotFocus" LostFocus="txtNotes_LostFocus"/>
+                            </Grid>
                         </Border>
 
                         <!-- Single Pie Chart Container with Both Pie Charts -->
-                        <Border Padding="20" Margin="0,10,0,-26" Grid.Row="1" Grid.ColumnSpan="2" CornerRadius="10" Background="White">
+                        <Border Padding="20" Margin="0,0,0,-16" Grid.Row="1" Grid.ColumnSpan="2" CornerRadius="10" Background="White">
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="38*"/>
@@ -299,107 +326,111 @@
                     </Grid>
                 </TabItem>
                 <!-- To-Do List Tab -->
-                <TabItem Width="305" Margin="174,1,-174,-3" Header="To-Do List"
->
-                    <Border Height="504" Padding="20" Background="#0F172A" Margin="0,0,-151,0"
->
-                        <Grid Margin="0,0,0,-20"
->
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="*"/>
-                                <RowDefinition Height="Auto"/>
-                            </Grid.RowDefinitions>
-                            <!-- Add Task -->
-                            <StackPanel Margin="0,0,0,10" Orientation="Horizontal"
->
-                                <TextBox Width="300" Text="Enter task..." x:Name="txtNewTask" LostFocus="TxtNewTask_LostFocus" Height="30" GotFocus="TxtNewTask_GotFocus" Foreground="Gray"/>
-                                <Button Width="80" Margin="10,0,0,0" Height="30" Content="Add" Click="AddTask_Click"/>
-                            </StackPanel>
-                            <!-- Task List -->
-                            <DataGrid
-                      Grid.Row="1"
-                      Margin="0,0,484,0" x:Name="dgTodo" HeadersVisibility="Column" CanUserAddRows="False" Background="White" AutoGenerateColumns="False" SelectionChanged="dgTodo_SelectionChanged"
->
-                                <DataGrid.Columns
->
-                                    <!-- Task Name -->
-                                    <DataGridTextColumn Binding="{Binding task_name}" Header="Task" Width="*"/>
-                                    <!-- Status -->
-                                    <DataGridCheckBoxColumn Binding="{Binding is_completed}" Header="Done?" Width="100"/>
-                                    <!-- Remove Task -->
-                                    <DataGridTemplateColumn Header="Remove" Width="100">
-                                        <DataGridTemplateColumn.CellTemplate>
-                                            <DataTemplate>
-                                                <Button Content="Remove"
-                                                        Width="80"
-                                                        Height="25"
-                                                        Click="RemoveTask_Click"
-                                                        Background="#DC3545"
-                                                        Foreground="White"
-                                                        BorderThickness="0"
-                                                        Cursor="Hand"
-                                                        FontSize="11">
-                                                    <Button.Style>
-                                                        <Style TargetType="Button">
-                                                            <Setter Property="Template">
-                                                                <Setter.Value>
-                                                                    <ControlTemplate TargetType="Button">
-                                                                        <Border Background="{TemplateBinding Background}"
-                                                                                CornerRadius="4"
-                                                                                Padding="5,2">
-                                                                            <ContentPresenter HorizontalAlignment="Center"
-                                                                                              VerticalAlignment="Center"/>
-                                                                        </Border>
-                                                                    </ControlTemplate>
-                                                                </Setter.Value>
-                                                            </Setter>
-                                                            <Style.Triggers>
-                                                                <Trigger Property="IsMouseOver" Value="True">
-                                                                    <Setter Property="Background" Value="#C82333"/>
-                                                                </Trigger>
-                                                            </Style.Triggers>
-                                                        </Style>
-                                                    </Button.Style>
-                                                </Button>
-                                            </DataTemplate>
-                                        </DataGridTemplateColumn.CellTemplate>
-                                    </DataGridTemplateColumn>
-                                </DataGrid.Columns>
-                            </DataGrid>
-                            <!-- Save Button -->
-                            <Button Width="140" VerticalAlignment="Top" Grid.Row="2" RenderTransformOrigin="0.5,0.5" Margin="216,22,0,0" Height="35" HorizontalAlignment="Left" Content="Submit" Click="SaveTodoChanges_Click"
->
-                                <Button.RenderTransform
->
-                                    <TransformGroup
->
+                <TabItem Header="To-Do List" Margin="143,6,-256,-8">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="360"/>
+                        </Grid.ColumnDefinitions>
 
-                                    </TransformGroup>
-                                </Button.RenderTransform>
-                            </Button>
-                            <StackPanel Grid.Row="1" Margin="457,0,0,0" Width="300">
-                                <!-- Header for Completed Tasks -->
-                                <Border Background="#1E293B" CornerRadius="4" Padding="6" Margin="0,0,0,6">
-                                    <TextBlock Text="Done Tasks" Foreground="White" FontWeight="Bold"/>
+                        <Border Grid.Column="0" Margin="0,34,12,0" Padding="20" Background="White" CornerRadius="12">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <Border Background="#5C6AC4" CornerRadius="8" Padding="10" Margin="0,0,0,12">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="📄" Margin="0,0,8,0"/>
+                                        <TextBlock Text="My Tasks" Foreground="White" FontWeight="Bold"/>
+                                    </StackPanel>
                                 </Border>
 
-                                <ListView x:Name="lstCompletedTasks" MouseDoubleClick="RestoreTask_DoubleClick"
-              Background="White" Height="349">
+                                <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,12">
+                                    <TextBox Width="300" Text="Enter task..." x:Name="txtNewTask" LostFocus="TxtNewTask_LostFocus" Height="32" GotFocus="TxtNewTask_GotFocus" Foreground="Gray"/>
+                                    <Button Width="80" Margin="10,0,0,0" Height="32" Content="Add" Click="AddTask_Click"/>
+                                </StackPanel>
+
+                                <DataGrid Grid.Row="2" x:Name="dgTodo" HeadersVisibility="Column" CanUserAddRows="False" Background="White" AutoGenerateColumns="False" SelectionChanged="dgTodo_SelectionChanged" Height="330" Margin="0,4,0,98">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Binding="{Binding task_name}" Header="Task" Width="*"/>
+                                        <DataGridCheckBoxColumn Binding="{Binding is_completed}" Header="Done?" Width="100"/>
+                                        <DataGridTemplateColumn Header="Remove" Width="100">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <Button Content="Remove" Width="80" Height="25" Click="RemoveTask_Click" Background="#DC3545" Foreground="White" BorderThickness="0" Cursor="Hand" FontSize="11">
+                                                        <Button.Style>
+                                                            <Style TargetType="Button">
+                                                                <Setter Property="Template">
+                                                                    <Setter.Value>
+                                                                        <ControlTemplate TargetType="Button">
+                                                                            <Border Background="{TemplateBinding Background}" CornerRadius="4" Padding="5,2">
+                                                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                                            </Border>
+                                                                        </ControlTemplate>
+                                                                    </Setter.Value>
+                                                                </Setter>
+                                                                <Style.Triggers>
+                                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                                        <Setter Property="Background" Value="#C82333"/>
+                                                                    </Trigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Button.Style>
+                                                    </Button>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+
+                                <Button Grid.Row="2" Width="140" Height="36" Content="Submit" Click="SaveTodoChanges_Click" HorizontalAlignment="Center" Margin="0,374,0,22" Background="#5C6AC4" Foreground="White" BorderThickness="0">
+                                    <Button.Style>
+                                        <Style TargetType="Button">
+                                            <Setter Property="Template">
+                                                <Setter.Value>
+                                                    <ControlTemplate TargetType="Button">
+                                                        <Border Background="{TemplateBinding Background}" CornerRadius="12" Padding="8,4">
+                                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                        </Border>
+                                                    </ControlTemplate>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
+
+                            </Grid>
+                        </Border>
+
+                        <Border Grid.Column="1" Padding="16" Background="#10B981" CornerRadius="12" Margin="0,34,0,0">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                    <Ellipse Width="12" Height="12" Fill="#A7F3D0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Completed Task" Foreground="White" FontWeight="Bold" Margin="8,0,0,0"/>
+                                </StackPanel>
+
+                                <ListView Grid.Row="1" x:Name="lstCompletedTasks" MouseDoubleClick="RestoreTask_DoubleClick" Background="#10B981">
                                     <ListView.View>
                                         <GridView>
-                                            <GridViewColumn Header="Task" DisplayMemberBinding="{Binding task_name}" Width="280"/>
+                                            <GridViewColumn Header="Task" DisplayMemberBinding="{Binding task_name}" Width="300"/>
                                         </GridView>
                                     </ListView.View>
                                 </ListView>
-                            </StackPanel>
-
-                        </Grid>
-                    </Border>
+                            </Grid>
+                        </Border>
+                    </Grid>
                 </TabItem>
                 <!-- Financials Tab -->
-                <TabItem Width="305" Margin="174,1,-174,-3" Header="Financials"
->
+                <TabItem Header="Financials" Margin="256,6,-368,-8">
                     <Border Height="560" Padding="20" Background="#0F172A">
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -409,6 +440,12 @@
 
                             <!-- Left Side: Expenses DataGrid -->
                             <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                                <Border Background="#212C41" CornerRadius="8" Padding="10" Margin="0,0,0,12">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="💼" Margin="0,0,8,0"/>
+                                        <TextBlock Text="Expense Tracker" Foreground="White" FontWeight="Bold"/>
+                                    </StackPanel>
+                                </Border>
                                 <!-- Budget Input -->
                                 <StackPanel Margin="0,0,0,10" Orientation="Horizontal">
                                     <TextBox Width="200" Text="Enter Budget" x:Name="txtBudget" LostFocus="TxtBudget_LostFocus" Height="30" GotFocus="TxtBudget_GotFocus" Foreground="Gray"/>
@@ -475,30 +512,98 @@
 
                             <!-- Right Side: Remaining Budget -->
                             <StackPanel Grid.Column="1" Margin="10,0,0,0">
-                                <!-- Remaining Budget -->
-                                <Border 
-                                        Background="#1E293B" 
-                                        CornerRadius="8" 
-                                        Padding="20"
-                                        Height="517">
+                                <Border CornerRadius="12" Padding="20" Height="517">
+                                    <Border.Background>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                            <GradientStop Color="#8B5CF6" Offset="0"/>
+                                            <GradientStop Color="#7C3AED" Offset="1"/>
+                                        </LinearGradientBrush>
+                                    </Border.Background>
                                     <StackPanel>
-                                        <TextBlock Text="Remaining Budget:" 
-                                                   Foreground="White" 
-                                                   FontSize="16" 
-                                                   FontWeight="Bold"
-                                                   Margin="0,0,0,10"
-                                                   TextAlignment="Left"/>
-                                        <TextBlock x:Name="lblRemainingBudget" 
-                                                   Text="₱0.00" 
-                                                   Foreground="#4CAF50" 
-                                                   FontSize="24" 
-                                                   FontWeight="Bold"
-                                                   TextAlignment="Left"/>
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                            <TextBlock Text="🧾" Margin="0,0,8,0"/>
+                                            <TextBlock Text="Budget Summary" Foreground="White" FontWeight="Bold"/>
+                                        </StackPanel>
+                                        <Border Background="#7C3AED" CornerRadius="8" Padding="12">
+                                            <StackPanel>
+                                                <TextBlock Text="Remaining Budget:" Foreground="White" FontSize="16" FontWeight="Bold"/>
+                                                <TextBlock x:Name="lblRemainingBudget" Text="₱0.00" Foreground="#D1FAE5" FontSize="28" FontWeight="Bold"/>
+                                            </StackPanel>
+                                        </Border>
                                     </StackPanel>
                                 </Border>
-                                <!-- Remaining Budget -->
-                                <!-- Remaining Budget -->
                             </StackPanel>
+                        </Grid>
+                    </Border>
+                </TabItem>
+                <!-- Records Tab -->
+                <TabItem Header="Records" Margin="368,6,-481,-8">
+                    <Border Padding="20" Background="#0F172A" CornerRadius="12" Height="560">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <TextBlock Text="7 Days Record" Foreground="White" FontSize="18" FontWeight="Bold" HorizontalAlignment="Center"/>
+                            <Grid Grid.Row="1" Margin="0,16,0,16">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Border Grid.Column="0" Background="#1C2433" CornerRadius="10" Padding="16" Margin="0,0,8,0">
+                                    <StackPanel>
+                                        <TextBlock Text="To-Do List" Foreground="#D1FAE5" FontWeight="Bold"/>
+                                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0" HorizontalAlignment="Center">
+                                            <StackPanel Margin="0,0,20,0">
+                                                <TextBlock Text="Completed" Foreground="#6B7280" FontSize="12" HorizontalAlignment="Center"/>
+                                                <TextBlock x:Name="txtRecordTodoCompletedPercent" Foreground="#4CAF50" FontWeight="Bold" FontSize="16" HorizontalAlignment="Center"/>
+                                            </StackPanel>
+                                            <StackPanel>
+                                                <TextBlock Text="Uncompleted" Foreground="#6B7280" FontSize="12" HorizontalAlignment="Center"/>
+                                                <TextBlock x:Name="txtRecordTodoUncompletedPercent" Foreground="#F44336" FontWeight="Bold" FontSize="16" HorizontalAlignment="Center"/>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+                                <Border Grid.Column="1" Background="#1C2433" CornerRadius="10" Padding="16" Margin="8,0,0,0">
+                                    <StackPanel>
+                                        <TextBlock Text="Financials" Foreground="#D1FAE5" FontWeight="Bold"/>
+                                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0" HorizontalAlignment="Center">
+                                            <StackPanel Margin="0,0,15,0">
+                                                <TextBlock Text="Food" Foreground="#6B7280" FontSize="12" HorizontalAlignment="Center"/>
+                                                <TextBlock x:Name="txtRecordFoodPercent" Foreground="#2196F3" FontWeight="Bold" FontSize="16" HorizontalAlignment="Center"/>
+                                            </StackPanel>
+                                            <StackPanel Margin="0,0,15,0">
+                                                <TextBlock Text="Transportation" Foreground="#6B7280" FontSize="12" HorizontalAlignment="Center"/>
+                                                <TextBlock x:Name="txtRecordTransportationPercent" Foreground="#FF9800" FontWeight="Bold" FontSize="16" HorizontalAlignment="Center"/>
+                                            </StackPanel>
+                                            <StackPanel>
+                                                <TextBlock Text="Others" Foreground="#6B7280" FontSize="12" HorizontalAlignment="Center"/>
+                                                <TextBlock x:Name="txtRecordOthersPercent" Foreground="#9C27B0" FontWeight="Bold" FontSize="16" HorizontalAlignment="Center"/>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+
+                            <DataGrid Grid.Row="2"
+                                      x:Name="dgWeeklyRecords"
+                                      AutoGenerateColumns="False"
+                                      HeadersVisibility="Column"
+                                      CanUserAddRows="False"
+                                      Background="White"
+                                      Height="260">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn x:Name="colWeek" Header="Week" Binding="{Binding Week}" Width="140"/>
+                                    <DataGridTextColumn Header="Completed Task" Binding="{Binding CompletedTaskDisplay}" Width="120"/>
+                                    <DataGridTextColumn Header="Total Task" Binding="{Binding TotalTaskDisplay}" Width="110"/>
+                                    <DataGridTextColumn Header="Food Expense" Binding="{Binding FoodExpenseDisplay}" Width="130"/>
+                                    <DataGridTextColumn Header="Transportation Expense" Binding="{Binding TransportationExpenseDisplay}" Width="160"/>
+                                    <DataGridTextColumn Header="Others" Binding="{Binding OthersExpenseDisplay}" Width="120"/>
+                                    <DataGridTextColumn Header="Total Budget" Binding="{Binding TotalBudgetDisplay}" Width="130"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
                         </Grid>
                     </Border>
                 </TabItem>
