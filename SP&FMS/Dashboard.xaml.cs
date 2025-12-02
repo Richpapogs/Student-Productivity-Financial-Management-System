@@ -46,10 +46,10 @@ namespace SP_FMS
             EnsureFinancialTables();        // ensure financial tables exist
             EnsureRecordsTable();           // ensure weekly_records table exists
             CreateWeeklyRecordIfNeeded();   // snapshot last 7 days into weekly_records if needed
+            CleanupOldUncompletedTasks();   // remove uncompleted tasks older than current week
+            CleanupOldCompletedTasks();     // remove completed tasks older than 7 days
             LoadTasks();                    // load tasks for this student
             LoadCompletedTasks();           // load completed tasks for this student
-            CleanupOldCompletedTasks();     // remove completed tasks older than 7 days
-            CleanupOldUncompletedTasks();   // remove uncompleted tasks older than 7 days
             CleanupOldTodoProgress();       // remove todo_progress records older than 7 days
             CleanupOldExpenses();           // remove expenses older than 7 days
             UpdatePieChart();               // update pie chart with 7-day statistics
@@ -73,11 +73,7 @@ namespace SP_FMS
             {
                 conn.Open();
 
-                string query = @"SELECT task_id, task_name, is_completed 
-                                  FROM todo_tasks 
-                                  WHERE student_id=@id 
-                                  AND is_completed=0 
-                                  AND (created_date IS NULL OR created_date >= DATE_SUB(CURDATE(), INTERVAL 7 DAY))";
+                string query = "SELECT task_id, task_name, is_completed FROM todo_tasks WHERE student_id=@id AND is_completed=0";
                 MySqlCommand cmd = new MySqlCommand(query, conn);
                 cmd.Parameters.AddWithValue("@id", studentId);
 
@@ -147,8 +143,7 @@ namespace SP_FMS
             SaveProgress();
             LoadTasks();
             LoadCompletedTasks();
-            CleanupOldCompletedTasks();
-            CleanupOldUncompletedTasks();
+            CleanupOldCompletedTasks(); // Clean up old tasks after saving
             UpdatePieChart(); // Update pie chart after saving changes
             UpdateRecordsTab();
         }
@@ -298,7 +293,6 @@ namespace SP_FMS
             LoadTasks();
             UpdatePieChart(); // Update pie chart after adding task
             SaveProgressSilent(); // Automatically update todo_progress when adding task
-            CleanupOldUncompletedTasks();
             UpdateRecordsTab();
         }
 
@@ -329,7 +323,6 @@ namespace SP_FMS
             LoadCompletedTasks();
             UpdatePieChart();
             SaveProgressSilent();
-            CleanupOldUncompletedTasks();
             UpdateRecordsTab();
 
             MessageBox.Show("Task removed successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
@@ -461,15 +454,18 @@ namespace SP_FMS
             using (var conn = DBHelper.GetConnection())
             {
                 conn.Open();
+
                 EnsureCreatedDateColumn();
 
-                string deleteQuery = @"DELETE FROM todo_tasks 
-                                       WHERE student_id=@id 
-                                       AND is_completed=0 
-                                       AND created_date IS NOT NULL 
-                                       AND created_date < DATE_SUB(CURDATE(), INTERVAL 7 DAY)";
+                DateTime weekStart = GetWeekStartTuesday(DateTime.Today);
+
+                string deleteQuery = @"DELETE FROM todo_tasks
+                                       WHERE student_id=@id
+                                       AND is_completed=0
+                                       AND ((created_date IS NOT NULL AND created_date < @start) OR created_date IS NULL)";
                 MySqlCommand deleteCmd = new MySqlCommand(deleteQuery, conn);
                 deleteCmd.Parameters.AddWithValue("@id", studentId);
+                deleteCmd.Parameters.AddWithValue("@start", weekStart);
                 deleteCmd.ExecuteNonQuery();
             }
         }
@@ -920,10 +916,7 @@ namespace SP_FMS
             string[] foodKeywords = { "food", "meal", "eat", "restaurant", "cafe", "snack", "lunch", "dinner", "breakfast", "groceries", "grocery", "market", "store", "buy", "purchase", "junk", "drink", "beverage", "water", "juice", "coffee", "tea" };
 
             // Transportation keywords
-            string[] transportKeywords = { "transport", "transportation", "fare",
-                "jeep", "jeepney", "tricycle", "trike", "bus", "taxi", "taxis", "pedicap", "pedicab",
-                "angkas", "moveit", "train", "trains",
-                "uber", "grab", "lrt", "mrt", "gas", "gasoline", "fuel", "parking", "motor", "motorcycle", "transpo" };
+            string[] transportKeywords = { "transport", "transportation", "fare", "taxi", "uber", "grab", "jeepney", "bus", "train", "lrt", "mrt", "gas", "gasoline", "fuel", "parking", "trike", "tricycle", "motor", "motorcycle" };
 
             // Check for food
             foreach (string keyword in foodKeywords)
