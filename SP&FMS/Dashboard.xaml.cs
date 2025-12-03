@@ -45,6 +45,7 @@ namespace SP_FMS
             EnsureCreatedDateColumn();      // ensure created_date column exists
             EnsureFinancialTables();        // ensure financial tables exist
             EnsureRecordsTable();           // ensure weekly_records table exists
+            EnsureWeeklyRecordBalanceColumn(); // add total_balance column if missing
             CreateWeeklyRecordIfNeeded();   // snapshot last 7 days into weekly_records if needed
             CleanupOldUncompletedTasks();   // remove uncompleted tasks older than current week
             CleanupOldCompletedTasks();     // remove completed tasks older than 7 days
@@ -1492,6 +1493,7 @@ namespace SP_FMS
                     others_total DECIMAL(10,2) NOT NULL DEFAULT 0,
                     others_last_date DATE NULL,
                     total_budget DECIMAL(10,2) NOT NULL DEFAULT 0,
+                    total_balance DECIMAL(10,2) NOT NULL DEFAULT 0,
                     budget_last_date DATE NULL,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     UNIQUE KEY unique_student_week (student_id, week_end_date),
@@ -1499,6 +1501,27 @@ namespace SP_FMS
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
                 MySqlCommand cmd = new MySqlCommand(createTable, conn);
                 cmd.ExecuteNonQuery();
+            }
+        }
+
+        private void EnsureWeeklyRecordBalanceColumn()
+        {
+            using (var conn = DBHelper.GetConnection())
+            {
+                conn.Open();
+                string checkQuery = @"SELECT COUNT(*) 
+                                      FROM INFORMATION_SCHEMA.COLUMNS 
+                                      WHERE TABLE_SCHEMA = DATABASE() 
+                                      AND TABLE_NAME = 'weekly_records' 
+                                      AND COLUMN_NAME = 'total_balance'";
+                MySqlCommand checkCmd = new MySqlCommand(checkQuery, conn);
+                int exists = Convert.ToInt32(checkCmd.ExecuteScalar());
+                if (exists == 0)
+                {
+                    string alterQuery = "ALTER TABLE weekly_records ADD COLUMN total_balance DECIMAL(10,2) NOT NULL DEFAULT 0 AFTER total_budget";
+                    MySqlCommand alterCmd = new MySqlCommand(alterQuery, conn);
+                    try { alterCmd.ExecuteNonQuery(); } catch { }
+                }
             }
         }
 
@@ -1600,21 +1623,40 @@ namespace SP_FMS
                     }
                 }
 
-                // Latest budget within week
-                decimal totalBudget = 0; DateTime? budgetDate = null;
-                string budgetQuery = @"SELECT budget_amount, date_set FROM student_budget 
-                                       WHERE student_id=@id AND date_set BETWEEN @start AND @end
-                                       ORDER BY date_set DESC LIMIT 1";
-                MySqlCommand budgetCmd = new MySqlCommand(budgetQuery, conn);
-                budgetCmd.Parameters.AddWithValue("@id", studentId);
-                budgetCmd.Parameters.AddWithValue("@start", weekStart);
-                budgetCmd.Parameters.AddWithValue("@end", weekEnd);
-                using (var reader = budgetCmd.ExecuteReader())
+                // Sum budget and balance within week
+                decimal totalBudget = 0; decimal totalBalance = 0; DateTime? budgetDate = null;
+                string sumBudgetQuery = @"SELECT COALESCE(SUM(budget_amount),0) as sum_budget, MAX(date_set) as last_date
+                                           FROM student_budget 
+                                           WHERE student_id=@id AND date_set BETWEEN @start AND @end";
+                using (var sumBudgetCmd = new MySqlCommand(sumBudgetQuery, conn))
                 {
-                    if (reader.Read())
+                    sumBudgetCmd.Parameters.AddWithValue("@id", studentId);
+                    sumBudgetCmd.Parameters.AddWithValue("@start", weekStart);
+                    sumBudgetCmd.Parameters.AddWithValue("@end", weekEnd);
+                    using (var r = sumBudgetCmd.ExecuteReader())
                     {
-                        totalBudget = reader.GetDecimal("budget_amount");
-                        budgetDate = reader.GetDateTime("date_set");
+                        if (r.Read())
+                        {
+                            totalBudget = r.IsDBNull(r.GetOrdinal("sum_budget")) ? 0 : r.GetDecimal("sum_budget");
+                            if (!r.IsDBNull(r.GetOrdinal("last_date"))) budgetDate = r.GetDateTime("last_date");
+                        }
+                    }
+                }
+
+                string sumBalanceQuery = @"SELECT COALESCE(SUM(budget_remaining),0) as sum_balance
+                                           FROM student_budget 
+                                           WHERE student_id=@id AND date_set BETWEEN @start AND @end";
+                using (var sumBalanceCmd = new MySqlCommand(sumBalanceQuery, conn))
+                {
+                    sumBalanceCmd.Parameters.AddWithValue("@id", studentId);
+                    sumBalanceCmd.Parameters.AddWithValue("@start", weekStart);
+                    sumBalanceCmd.Parameters.AddWithValue("@end", weekEnd);
+                    using (var r = sumBalanceCmd.ExecuteReader())
+                    {
+                        if (r.Read())
+                        {
+                            totalBalance = r.IsDBNull(r.GetOrdinal("sum_balance")) ? 0 : r.GetDecimal("sum_balance");
+                        }
                     }
                 }
 
@@ -1622,11 +1664,11 @@ namespace SP_FMS
                 string insert = @"INSERT INTO weekly_records (
                                     student_id, week_start_date, week_end_date, completed_tasks, total_tasks,
                                     food_total, food_last_date, transportation_total, transportation_last_date,
-                                    others_total, others_last_date, total_budget, budget_last_date)
+                                    others_total, others_last_date, total_budget, total_balance, budget_last_date)
                                   VALUES (
                                     @id, @ws, @we, @completed, @total,
                                     @food, @foodDate, @trans, @transDate,
-                                    @others, @othersDate, @budget, @budgetDate)";
+                                    @others, @othersDate, @budget, @balance, @budgetDate)";
                 MySqlCommand insertCmd = new MySqlCommand(insert, conn);
                 insertCmd.Parameters.AddWithValue("@id", studentId);
                 insertCmd.Parameters.AddWithValue("@ws", weekStart);
@@ -1640,6 +1682,7 @@ namespace SP_FMS
                 insertCmd.Parameters.AddWithValue("@others", othersTotal);
                 insertCmd.Parameters.AddWithValue("@othersDate", (object?)othersDate ?? DBNull.Value);
                 insertCmd.Parameters.AddWithValue("@budget", totalBudget);
+                insertCmd.Parameters.AddWithValue("@balance", totalBalance);
                 insertCmd.Parameters.AddWithValue("@budgetDate", (object?)budgetDate ?? DBNull.Value);
 
                 try { insertCmd.ExecuteNonQuery(); } catch { /* ignore if unique already exists */ }
@@ -1655,6 +1698,7 @@ namespace SP_FMS
             public string TransportationExpenseDisplay { get; set; } = string.Empty;
             public string OthersExpenseDisplay { get; set; } = string.Empty;
             public string TotalBudgetDisplay { get; set; } = string.Empty;
+            public string TotalBalanceDisplay { get; set; } = string.Empty;
         }
 
         private void LoadWeeklyRecords()
@@ -1665,7 +1709,7 @@ namespace SP_FMS
                 conn.Open();
                 string q = @"SELECT week_start_date, week_end_date, completed_tasks, total_tasks,
                                    food_total, food_last_date, transportation_total, transportation_last_date,
-                                   others_total, others_last_date, total_budget, budget_last_date
+                                   others_total, others_last_date, total_budget, total_balance, budget_last_date
                               FROM weekly_records WHERE student_id=@id ORDER BY week_end_date DESC";
                 MySqlCommand cmd = new MySqlCommand(q, conn);
                 cmd.Parameters.AddWithValue("@id", studentId);
@@ -1681,7 +1725,8 @@ namespace SP_FMS
                         decimal food = r.GetDecimal("food_total");
                         decimal trans = r.GetDecimal("transportation_total");
                         decimal others = r.GetDecimal("others_total");
-                        decimal budget = r.GetDecimal("total_budget");
+                        decimal budget = SumBudget(ws, we);
+                        decimal balance = SumBalance(ws, we);
 
                         DateTime? foodDate = r.IsDBNull(r.GetOrdinal("food_last_date")) ? null : r.GetDateTime("food_last_date");
                         DateTime? transDate = r.IsDBNull(r.GetOrdinal("transportation_last_date")) ? null : r.GetDateTime("transportation_last_date");
@@ -1691,17 +1736,48 @@ namespace SP_FMS
                         rows.Add(new WeeklyRecordRow
                         {
                             Week = ws.ToString("MM-dd") + " → " + we.ToString("MM-dd"),
-                            CompletedTaskDisplay = completed + ", " + we.ToString("yyyy-MM-dd"),
-                            TotalTaskDisplay = total + ", " + we.ToString("yyyy-MM-dd"),
-                            FoodExpenseDisplay = "₱" + food.ToString("N0") + (foodDate != null ? ", " + foodDate.Value.ToString("yyyy-MM-dd") : ""),
-                            TransportationExpenseDisplay = "₱" + trans.ToString("N0") + (transDate != null ? ", " + transDate.Value.ToString("yyyy-MM-dd") : ""),
-                            OthersExpenseDisplay = "₱" + others.ToString("N0") + (othersDate != null ? ", " + othersDate.Value.ToString("yyyy-MM-dd") : ""),
-                            TotalBudgetDisplay = "₱" + budget.ToString("N0") + (budgetDate != null ? ", " + budgetDate.Value.ToString("yyyy-MM-dd") : "")
+                            CompletedTaskDisplay = completed.ToString(),
+                            TotalTaskDisplay = total.ToString(),
+                            FoodExpenseDisplay = "₱" + food.ToString("N0"),
+                            TransportationExpenseDisplay = "₱" + trans.ToString("N0"),
+                            OthersExpenseDisplay = "₱" + others.ToString("N0"),
+                            TotalBudgetDisplay = "₱" + budget.ToString("N0"),
+                            TotalBalanceDisplay = "₱" + balance.ToString("N0")
                         });
                     }
                 }
             }
             dgWeeklyRecords.ItemsSource = rows;
+        }
+
+        private decimal SumBudget(DateTime start, DateTime end)
+        {
+            using (var conn = DBHelper.GetConnection())
+            {
+                conn.Open();
+                string q = "SELECT COALESCE(SUM(budget_amount),0) FROM student_budget WHERE student_id=@id AND date_set BETWEEN @start AND @end";
+                MySqlCommand cmd = new MySqlCommand(q, conn);
+                cmd.Parameters.AddWithValue("@id", studentId);
+                cmd.Parameters.AddWithValue("@start", start);
+                cmd.Parameters.AddWithValue("@end", end);
+                object result = cmd.ExecuteScalar();
+                return result == null || result == DBNull.Value ? 0 : Convert.ToDecimal(result);
+            }
+        }
+
+        private decimal SumBalance(DateTime start, DateTime end)
+        {
+            using (var conn = DBHelper.GetConnection())
+            {
+                conn.Open();
+                string q = "SELECT COALESCE(SUM(budget_remaining),0) FROM student_budget WHERE student_id=@id AND date_set BETWEEN @start AND @end";
+                MySqlCommand cmd = new MySqlCommand(q, conn);
+                cmd.Parameters.AddWithValue("@id", studentId);
+                cmd.Parameters.AddWithValue("@start", start);
+                cmd.Parameters.AddWithValue("@end", end);
+                object result = cmd.ExecuteScalar();
+                return result == null || result == DBNull.Value ? 0 : Convert.ToDecimal(result);
+            }
         }
 
         private DateTime GetWeekStartTuesday(DateTime date)

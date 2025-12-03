@@ -84,6 +84,30 @@
                 </Trigger>
             </Style.Triggers>
         </Style>
+        <Style x:Key="CardBorderStyle" TargetType="Border">
+            <Setter Property="CornerRadius" Value="14"/>
+            <Setter Property="Padding" Value="16"/>
+            <Setter Property="Background" Value="#111827"/>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect Color="#000000" BlurRadius="18" Opacity="0.35" Direction="320"/>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="SectionHeaderStyle" TargetType="TextBlock">
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="FontSize" Value="20"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="Foreground">
+                <Setter.Value>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                        <GradientStop Color="#93C5FD" Offset="0"/>
+                        <GradientStop Color="#A78BFA" Offset="0.5"/>
+                        <GradientStop Color="#F472B6" Offset="1"/>
+                    </LinearGradientBrush>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
     <Grid Margin="20"
 >
@@ -623,72 +647,110 @@
                 </TabItem>
                 <!-- Records Tab -->
                 <TabItem Header="Records" Margin="368,6,-481,-8">
-                    <Border Padding="20" Background="#0F172A" CornerRadius="12" Height="560">
+                    <Border Padding="24" Background="#0F172A" CornerRadius="18" Height="560">
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
-                            <TextBlock Text="7 Days Record" Foreground="White" FontSize="18" FontWeight="Bold" HorizontalAlignment="Center"/>
+                            <TextBlock Text="7 Days Record" Style="{StaticResource SectionHeaderStyle}"/>
                             <Grid Grid.Row="1" Margin="0,16,0,16">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
-                                <Border Grid.Column="0" Background="#1C2433" CornerRadius="10" Padding="16" Margin="0,0,8,0">
-                                    <StackPanel>
+                                <Border Grid.Column="0" Style="{StaticResource CardBorderStyle}" Margin="0,0,8,0">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="*"/>
+                                        </Grid.RowDefinitions>
                                         <TextBlock Text="To-Do List" Foreground="#D1FAE5" FontWeight="Bold"/>
-                                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0" HorizontalAlignment="Center">
-                                            <StackPanel Margin="0,0,20,0">
-                                                <TextBlock Text="Completed" Foreground="#6B7280" FontSize="12" HorizontalAlignment="Center"/>
-                                                <TextBlock x:Name="txtRecordTodoCompletedPercent" Foreground="#4CAF50" FontWeight="Bold" FontSize="16" HorizontalAlignment="Center"/>
+                                        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,8,0,0">
+                                            <StackPanel Margin="0,0,24,0">
+                                                <TextBlock Text="Completed" Foreground="#9CA3AF" FontSize="12" HorizontalAlignment="Center"/>
+                                                <TextBlock x:Name="txtRecordTodoCompletedPercent" Foreground="#34D399" FontWeight="Bold" FontSize="18" HorizontalAlignment="Center"/>
                                             </StackPanel>
                                             <StackPanel>
-                                                <TextBlock Text="Uncompleted" Foreground="#6B7280" FontSize="12" HorizontalAlignment="Center"/>
-                                                <TextBlock x:Name="txtRecordTodoUncompletedPercent" Foreground="#F44336" FontWeight="Bold" FontSize="16" HorizontalAlignment="Center"/>
+                                                <TextBlock Text="Uncompleted" Foreground="#9CA3AF" FontSize="12" HorizontalAlignment="Center"/>
+                                                <TextBlock x:Name="txtRecordTodoUncompletedPercent" Foreground="#F87171" FontWeight="Bold" FontSize="18" HorizontalAlignment="Center"/>
                                             </StackPanel>
                                         </StackPanel>
-                                    </StackPanel>
+                                    </Grid>
                                 </Border>
-                                <Border Grid.Column="1" Background="#1C2433" CornerRadius="10" Padding="16" Margin="8,0,0,0">
-                                    <StackPanel>
+                                <Border Grid.Column="1" Style="{StaticResource CardBorderStyle}" Margin="8,0,0,0">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="*"/>
+                                        </Grid.RowDefinitions>
                                         <TextBlock Text="Financials" Foreground="#D1FAE5" FontWeight="Bold"/>
-                                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0" HorizontalAlignment="Center">
-                                            <StackPanel Margin="0,0,15,0">
-                                                <TextBlock Text="Food" Foreground="#6B7280" FontSize="12" HorizontalAlignment="Center"/>
-                                                <TextBlock x:Name="txtRecordFoodPercent" Foreground="#2196F3" FontWeight="Bold" FontSize="16" HorizontalAlignment="Center"/>
+                                        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,8,0,0">
+                                            <StackPanel Margin="0,0,20,0">
+                                                <TextBlock Text="Food" Foreground="#9CA3AF" FontSize="12" HorizontalAlignment="Center"/>
+                                                <TextBlock x:Name="txtRecordFoodPercent" Foreground="#60A5FA" FontWeight="Bold" FontSize="18" HorizontalAlignment="Center"/>
                                             </StackPanel>
-                                            <StackPanel Margin="0,0,15,0">
-                                                <TextBlock Text="Transportation" Foreground="#6B7280" FontSize="12" HorizontalAlignment="Center"/>
-                                                <TextBlock x:Name="txtRecordTransportationPercent" Foreground="#FF9800" FontWeight="Bold" FontSize="16" HorizontalAlignment="Center"/>
+                                            <StackPanel Margin="0,0,20,0">
+                                                <TextBlock Text="Transportation" Foreground="#9CA3AF" FontSize="12" HorizontalAlignment="Center"/>
+                                                <TextBlock x:Name="txtRecordTransportationPercent" Foreground="#F59E0B" FontWeight="Bold" FontSize="18" HorizontalAlignment="Center"/>
                                             </StackPanel>
                                             <StackPanel>
-                                                <TextBlock Text="Others" Foreground="#6B7280" FontSize="12" HorizontalAlignment="Center"/>
-                                                <TextBlock x:Name="txtRecordOthersPercent" Foreground="#9C27B0" FontWeight="Bold" FontSize="16" HorizontalAlignment="Center"/>
+                                                <TextBlock Text="Others" Foreground="#9CA3AF" FontSize="12" HorizontalAlignment="Center"/>
+                                                <TextBlock x:Name="txtRecordOthersPercent" Foreground="#A78BFA" FontWeight="Bold" FontSize="18" HorizontalAlignment="Center"/>
                                             </StackPanel>
                                         </StackPanel>
-                                    </StackPanel>
+                                    </Grid>
                                 </Border>
                             </Grid>
 
-                            <DataGrid Grid.Row="2"
+                            <Border Grid.Row="2" Background="White" CornerRadius="14">
+                                <Border.Effect>
+                                    <DropShadowEffect Color="#000000" BlurRadius="18" Opacity="0.25" Direction="320"/>
+                                </Border.Effect>
+                                <DataGrid
                                       x:Name="dgWeeklyRecords"
                                       AutoGenerateColumns="False"
                                       HeadersVisibility="Column"
                                       CanUserAddRows="False"
                                       Background="White"
-                                      Height="260">
-                                <DataGrid.Columns>
-                                    <DataGridTextColumn x:Name="colWeek" Header="Week" Binding="{Binding Week}" Width="140"/>
-                                    <DataGridTextColumn Header="Completed Task" Binding="{Binding CompletedTaskDisplay}" Width="120"/>
-                                    <DataGridTextColumn Header="Total Task" Binding="{Binding TotalTaskDisplay}" Width="110"/>
-                                    <DataGridTextColumn Header="Food Expense" Binding="{Binding FoodExpenseDisplay}" Width="130"/>
-                                    <DataGridTextColumn Header="Transportation Expense" Binding="{Binding TransportationExpenseDisplay}" Width="160"/>
-                                    <DataGridTextColumn Header="Others" Binding="{Binding OthersExpenseDisplay}" Width="120"/>
-                                    <DataGridTextColumn Header="Total Budget" Binding="{Binding TotalBudgetDisplay}" Width="130"/>
-                                </DataGrid.Columns>
-                            </DataGrid>
+                                      BorderThickness="0"
+                                      GridLinesVisibility="None"
+                                      RowBackground="#FFFFFF"
+                                      AlternatingRowBackground="#F9FAFB"
+                                      RowHeight="34"
+                                      ColumnHeaderHeight="32" Margin="0,19,0,0">
+                                    <DataGrid.Resources>
+                                        <Style TargetType="DataGridColumnHeader">
+                                            <Setter Property="Background" Value="#F3F4F6"/>
+                                            <Setter Property="FontWeight" Value="SemiBold"/>
+                                            <Setter Property="BorderThickness" Value="0"/>
+                                            <Setter Property="Height" Value="32"/>
+                                        </Style>
+                                        <Style TargetType="DataGridRow">
+                                            <Setter Property="BorderThickness" Value="0"/>
+                                            <Style.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter Property="Background" Value="#EEF2FF"/>
+                                                </Trigger>
+                                                <Trigger Property="IsSelected" Value="True">
+                                                    <Setter Property="Background" Value="#E0E7FF"/>
+                                                </Trigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </DataGrid.Resources>
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn x:Name="colWeek" Header="Week" Binding="{Binding Week}" Width="120"/>
+                                        <DataGridTextColumn Header="Completed Task" Binding="{Binding CompletedTaskDisplay}" Width="120"/>
+                                        <DataGridTextColumn Header="Total Task" Binding="{Binding TotalTaskDisplay}" Width="90"/>
+                                        <DataGridTextColumn Header="Food Expense" Binding="{Binding FoodExpenseDisplay}" Width="110"/>
+                                        <DataGridTextColumn Header="Transport Expense" Binding="{Binding TransportationExpenseDisplay}" Width="140"/>
+                                        <DataGridTextColumn Header="Others" Binding="{Binding OthersExpenseDisplay}" Width="75"/>
+                                        <DataGridTextColumn Header="Total Budget" Binding="{Binding TotalBudgetDisplay}" Width="110"/>
+                                        <DataGridTextColumn Header="Total Balance" Binding="{Binding TotalBalanceDisplay}" Width="120"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </Border>
                         </Grid>
                     </Border>
                 </TabItem>
