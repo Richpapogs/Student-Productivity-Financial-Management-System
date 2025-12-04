@@ -64,6 +64,8 @@ namespace SP_FMS
             {
                 colWeek.Header = "Week (" + DateTime.Today.Year + ")";
             }
+            EnsureNotesColumn();
+            LoadNotes();
         }
 
         #region To-Do List Methods
@@ -179,6 +181,7 @@ namespace SP_FMS
 
         private void BackButton_Click(object sender, RoutedEventArgs e)
         {
+            SaveNotes();
             // Open the login/main window
             MainWindow mainWindow = new MainWindow();
             mainWindow.Show();
@@ -514,6 +517,61 @@ namespace SP_FMS
                 txtNotes.Text = "Add your notes here...";
                 txtNotes.Foreground = Brushes.Gray;
             }
+            SaveNotes();
+        }
+
+        private void EnsureNotesColumn()
+        {
+            using (var conn = DBHelper.GetConnection())
+            {
+                conn.Open();
+                string q = @"SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'students' AND COLUMN_NAME = 'notes'";
+                MySqlCommand cmd = new MySqlCommand(q, conn);
+                int exists = Convert.ToInt32(cmd.ExecuteScalar());
+                if (exists == 0)
+                {
+                    string alter = "ALTER TABLE students ADD COLUMN notes TEXT NULL";
+                    MySqlCommand alterCmd = new MySqlCommand(alter, conn);
+                    alterCmd.ExecuteNonQuery();
+                }
+            }
+        }
+
+        private void LoadNotes()
+        {
+            using (var conn = DBHelper.GetConnection())
+            {
+                conn.Open();
+                string q = "SELECT notes FROM students WHERE id=@id";
+                MySqlCommand cmd = new MySqlCommand(q, conn);
+                cmd.Parameters.AddWithValue("@id", studentId);
+                object result = cmd.ExecuteScalar();
+                if (result != null && result != DBNull.Value && !string.IsNullOrWhiteSpace(result.ToString()))
+                {
+                    txtNotes.Text = result.ToString();
+                    txtNotes.Foreground = Brushes.Black;
+                }
+                else
+                {
+                    txtNotes.Text = "Add your notes here...";
+                    txtNotes.Foreground = Brushes.Gray;
+                }
+            }
+        }
+
+        private void SaveNotes()
+        {
+            string content = txtNotes.Text;
+            using (var conn = DBHelper.GetConnection())
+            {
+                conn.Open();
+                string q = "UPDATE students SET notes=@notes WHERE id=@id";
+                MySqlCommand cmd = new MySqlCommand(q, conn);
+                object val = (string.IsNullOrWhiteSpace(content) || content == "Add your notes here...") ? DBNull.Value : content;
+                cmd.Parameters.AddWithValue("@notes", val);
+                cmd.Parameters.AddWithValue("@id", studentId);
+                cmd.ExecuteNonQuery();
+            }
         }
 
        
@@ -556,7 +614,7 @@ namespace SP_FMS
                 {
                     conn.Close();
                     conn.Open();
-                    
+
                     // Simple fallback query
                     string fallbackQuery = @"SELECT 
                                                 SUM(CASE WHEN is_completed = 1 AND completion_date >= @start THEN 1 ELSE 0 END) as completed,
