@@ -149,6 +149,8 @@ namespace SP_FMS
             CleanupOldCompletedTasks(); // Clean up old tasks after saving
             UpdatePieChart(); // Update pie chart after saving changes
             UpdateRecordsTab();
+            LoadWeeklyRecords();
+            EnsureWeeklyRecordForDate(DateTime.Today);
         }
 
 
@@ -298,6 +300,8 @@ namespace SP_FMS
             UpdatePieChart(); // Update pie chart after adding task
             SaveProgressSilent(); // Automatically update todo_progress when adding task
             UpdateRecordsTab();
+            LoadWeeklyRecords();
+            EnsureWeeklyRecordForDate(DateTime.Today);
         }
 
         private void RemoveTask_Click(object sender, RoutedEventArgs e)
@@ -328,6 +332,8 @@ namespace SP_FMS
             UpdatePieChart();
             SaveProgressSilent();
             UpdateRecordsTab();
+            LoadWeeklyRecords();
+            EnsureWeeklyRecordForDate(DateTime.Today);
 
             MessageBox.Show("Task removed successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
         }
@@ -461,7 +467,7 @@ namespace SP_FMS
 
                 EnsureCreatedDateColumn();
 
-                DateTime weekStart = GetWeekStartTuesday(DateTime.Today);
+                DateTime weekStart = GetRollingStart(DateTime.Today);
 
                 string deleteQuery = @"DELETE FROM todo_tasks
                                        WHERE student_id=@id
@@ -582,7 +588,7 @@ namespace SP_FMS
         {
             int completedCount = 0;
             int uncompletedCount = 0;
-            DateTime weekStart = GetWeekStartTuesday(DateTime.Today);
+            DateTime weekStart = GetRollingStart(DateTime.Today);
 
             using (var conn = DBHelper.GetConnection())
             {
@@ -670,6 +676,32 @@ namespace SP_FMS
             double completedAngle = (completedPercent / 100.0) * 360.0;
             double uncompletedAngle = (uncompletedPercent / 100.0) * 360.0;
 
+            if (completedPercent == 0 && uncompletedPercent == 0)
+            {
+                pathCompleted.Visibility = Visibility.Collapsed;
+                pathUncompleted.Data = new EllipseGeometry(new Point(centerX, centerY), radius, radius);
+                pathUncompleted.Fill = Brushes.LightGray;
+                pathUncompleted.Visibility = Visibility.Visible;
+                return;
+            }
+
+            if (completedPercent >= 100)
+            {
+                pathCompleted.Data = new EllipseGeometry(new Point(centerX, centerY), radius, radius);
+                pathCompleted.Visibility = Visibility.Visible;
+                pathUncompleted.Visibility = Visibility.Collapsed;
+                return;
+            }
+
+            if (uncompletedPercent >= 100)
+            {
+                pathUncompleted.Data = new EllipseGeometry(new Point(centerX, centerY), radius, radius);
+                pathUncompleted.Fill = new SolidColorBrush(Color.FromRgb(244, 67, 54));
+                pathUncompleted.Visibility = Visibility.Visible;
+                pathCompleted.Visibility = Visibility.Collapsed;
+                return;
+            }
+
             // Draw completed slice (Green) - starts from top
             if (completedPercent > 0)
             {
@@ -731,36 +763,12 @@ namespace SP_FMS
                 PathGeometry uncompletedGeometry = new PathGeometry();
                 uncompletedGeometry.Figures.Add(uncompletedFigure);
                 pathUncompleted.Data = uncompletedGeometry;
+                pathUncompleted.Fill = new SolidColorBrush(Color.FromRgb(244, 67, 54));
                 pathUncompleted.Visibility = Visibility.Visible;
             }
             else
             {
                 pathUncompleted.Visibility = Visibility.Collapsed;
-            }
-
-            // If no tasks, show a full circle (gray or white)
-            if (completedPercent == 0 && uncompletedPercent == 0)
-            {
-                PathFigure emptyFigure = new PathFigure
-                {
-                    StartPoint = new Point(centerX, centerY),
-                    IsClosed = true
-                };
-
-                emptyFigure.Segments.Add(new LineSegment(new Point(centerX, centerY - radius), true));
-                emptyFigure.Segments.Add(new ArcSegment
-                {
-                    Point = new Point(centerX, centerY - radius),
-                    Size = new Size(radius, radius),
-                    SweepDirection = SweepDirection.Clockwise,
-                    IsLargeArc = true
-                });
-
-                PathGeometry emptyGeometry = new PathGeometry();
-                emptyGeometry.Figures.Add(emptyFigure);
-                pathUncompleted.Data = emptyGeometry;
-                pathUncompleted.Fill = Brushes.LightGray;
-                pathUncompleted.Visibility = Visibility.Visible;
             }
         }
 
@@ -1056,6 +1064,7 @@ namespace SP_FMS
             txtBudget.Text = "Enter Budget";
             txtBudget.Foreground = Brushes.Gray;
             UpdateRemainingBudget();
+            EnsureWeeklyRecordForDate(DateTime.Today);
             MessageBox.Show("Budget added successfully!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
@@ -1103,6 +1112,7 @@ namespace SP_FMS
             UpdateRemainingBudget();
             UpdateExpensePieChart(); // Update expense pie chart after adding expense
             UpdateRecordsTab();
+            EnsureWeeklyRecordForDate(DateTime.Today);
         }
 
         private void RemoveExpense_Click(object sender, RoutedEventArgs e)
@@ -1233,7 +1243,7 @@ namespace SP_FMS
             decimal foodTotal = 0;
             decimal transportationTotal = 0;
             decimal othersTotal = 0;
-            DateTime weekStart = GetWeekStartTuesday(DateTime.Today);
+            DateTime weekStart = GetRollingStart(DateTime.Today);
 
             using (var conn = DBHelper.GetConnection())
             {
@@ -1313,6 +1323,46 @@ namespace SP_FMS
             double foodAngle = (foodPercent / 100.0) * 360.0;
             double transportationAngle = (transportationPercent / 100.0) * 360.0;
             double othersAngle = (othersPercent / 100.0) * 360.0;
+
+            if (foodPercent == 0 && transportationPercent == 0 && othersPercent == 0)
+            {
+                pathFood.Visibility = Visibility.Collapsed;
+                pathTransportation.Visibility = Visibility.Collapsed;
+                pathOthers.Data = new EllipseGeometry(new Point(centerX, centerY), radius, radius);
+                pathOthers.Fill = Brushes.LightGray;
+                pathOthers.Visibility = Visibility.Visible;
+                return;
+            }
+
+            if (foodPercent >= 100)
+            {
+                pathFood.Data = new EllipseGeometry(new Point(centerX, centerY), radius, radius);
+                pathFood.Fill = new SolidColorBrush(Color.FromRgb(33, 150, 243));
+                pathFood.Visibility = Visibility.Visible;
+                pathTransportation.Visibility = Visibility.Collapsed;
+                pathOthers.Visibility = Visibility.Collapsed;
+                return;
+            }
+
+            if (transportationPercent >= 100)
+            {
+                pathTransportation.Data = new EllipseGeometry(new Point(centerX, centerY), radius, radius);
+                pathTransportation.Fill = new SolidColorBrush(Color.FromRgb(255, 152, 0));
+                pathTransportation.Visibility = Visibility.Visible;
+                pathFood.Visibility = Visibility.Collapsed;
+                pathOthers.Visibility = Visibility.Collapsed;
+                return;
+            }
+
+            if (othersPercent >= 100)
+            {
+                pathOthers.Data = new EllipseGeometry(new Point(centerX, centerY), radius, radius);
+                pathOthers.Fill = new SolidColorBrush(Color.FromRgb(156, 39, 176));
+                pathOthers.Visibility = Visibility.Visible;
+                pathFood.Visibility = Visibility.Collapsed;
+                pathTransportation.Visibility = Visibility.Collapsed;
+                return;
+            }
 
             // Draw Food slice (Blue) - starts from top
             if (foodPercent > 0)
@@ -1409,36 +1459,12 @@ namespace SP_FMS
                 PathGeometry othersGeometry = new PathGeometry();
                 othersGeometry.Figures.Add(othersFigure);
                 pathOthers.Data = othersGeometry;
+                pathOthers.Fill = new SolidColorBrush(Color.FromRgb(156, 39, 176));
                 pathOthers.Visibility = Visibility.Visible;
             }
             else
             {
                 pathOthers.Visibility = Visibility.Collapsed;
-            }
-
-            // If no expenses, show a full circle (gray)
-            if (foodPercent == 0 && transportationPercent == 0 && othersPercent == 0)
-            {
-                PathFigure emptyFigure = new PathFigure
-                {
-                    StartPoint = new Point(centerX, centerY),
-                    IsClosed = true
-                };
-
-                emptyFigure.Segments.Add(new LineSegment(new Point(centerX, centerY - radius), true));
-                emptyFigure.Segments.Add(new ArcSegment
-                {
-                    Point = new Point(centerX, centerY - radius),
-                    Size = new Size(radius, radius),
-                    SweepDirection = SweepDirection.Clockwise,
-                    IsLargeArc = true
-                });
-
-                PathGeometry emptyGeometry = new PathGeometry();
-                emptyGeometry.Figures.Add(emptyFigure);
-                pathOthers.Data = emptyGeometry;
-                pathOthers.Fill = Brushes.LightGray;
-                pathOthers.Visibility = Visibility.Visible;
             }
         }
 
@@ -1449,7 +1475,7 @@ namespace SP_FMS
 
             int completedCount = 0;
             int uncompletedCount = 0;
-            DateTime weekStart = GetWeekStartTuesday(DateTime.Today);
+            DateTime weekStart = GetRollingStart(DateTime.Today);
             using (var conn = DBHelper.GetConnection())
             {
                 conn.Open();
@@ -1588,23 +1614,30 @@ namespace SP_FMS
             using (var conn = DBHelper.GetConnection())
             {
                 conn.Open();
+                // Initialize first weekly record only when there is real activity
+                string firstActivityQuery = @"
+                    SELECT MIN(activity_date) AS first_date FROM (
+                        SELECT MIN(created_date) AS activity_date FROM todo_tasks WHERE student_id=@id AND created_date IS NOT NULL
+                        UNION ALL
+                        SELECT MIN(date_added) FROM expenses WHERE student_id=@id
+                        UNION ALL
+                        SELECT MIN(date_set) FROM student_budget WHERE student_id=@id
+                    ) t";
+                MySqlCommand firstCmd = new MySqlCommand(firstActivityQuery, conn);
+                firstCmd.Parameters.AddWithValue("@id", studentId);
+                object firstDateObj = firstCmd.ExecuteScalar();
+                if (firstDateObj == null || firstDateObj == DBNull.Value) return; // no activity yet
 
-                // Anchor weeks on Tuesday: snapshot previous Tue–Mon window.
-                DateTime today = DateTime.Today;
-                DateTime currentWeekStart = GetWeekStartTuesday(today);
-                DateTime prevWeekStart = currentWeekStart.AddDays(-7);
-                DateTime prevWeekEnd = currentWeekStart.AddDays(-1);
+                DateTime weekStart = Convert.ToDateTime(firstDateObj);
+                DateTime weekEnd = weekStart.AddDays(6);
 
-                // If a snapshot for previous week is missing, create it.
-                string existsQuery = @"SELECT COUNT(*) FROM weekly_records WHERE student_id=@id AND week_end_date=@we";
+                string existsQuery = @"SELECT COUNT(*) FROM weekly_records WHERE student_id=@id AND week_start_date=@ws AND week_end_date=@we";
                 MySqlCommand existsCmd = new MySqlCommand(existsQuery, conn);
                 existsCmd.Parameters.AddWithValue("@id", studentId);
-                existsCmd.Parameters.AddWithValue("@we", prevWeekEnd);
+                existsCmd.Parameters.AddWithValue("@ws", weekStart);
+                existsCmd.Parameters.AddWithValue("@we", weekEnd);
                 int exists = Convert.ToInt32(existsCmd.ExecuteScalar());
                 if (exists > 0) return;
-
-                DateTime weekStart = prevWeekStart;
-                DateTime weekEnd = prevWeekEnd;
 
                 // Latest todo_progress within week
                 int completed = 0, total = 0; DateTime? todoDate = null;
@@ -1747,6 +1780,125 @@ namespace SP_FMS
             }
         }
 
+        private void EnsureWeeklyRecordForDate(DateTime activityDate)
+        {
+            using (var conn = DBHelper.GetConnection())
+            {
+                conn.Open();
+                DateTime ws = activityDate.Date;
+                DateTime we = ws.AddDays(6);
+                string existsQuery = @"SELECT COUNT(*) FROM weekly_records WHERE student_id=@id AND @today BETWEEN week_start_date AND week_end_date";
+                MySqlCommand existsCmd = new MySqlCommand(existsQuery, conn);
+                existsCmd.Parameters.AddWithValue("@id", studentId);
+                existsCmd.Parameters.AddWithValue("@today", activityDate.Date);
+                int exists = Convert.ToInt32(existsCmd.ExecuteScalar());
+                if (exists > 0) return;
+
+                // compute summaries within ws..we
+                int completed = 0, total = 0;
+                string todoQuery = @"SELECT completed_tasks, total_tasks, date_recorded
+                                      FROM todo_progress
+                                      WHERE student_id=@id AND date_recorded BETWEEN @start AND @end
+                                      ORDER BY date_recorded DESC LIMIT 1";
+                using (var todoCmd = new MySqlCommand(todoQuery, conn))
+                {
+                    todoCmd.Parameters.AddWithValue("@id", studentId);
+                    todoCmd.Parameters.AddWithValue("@start", ws);
+                    todoCmd.Parameters.AddWithValue("@end", we);
+                    using (var r = todoCmd.ExecuteReader())
+                    {
+                        if (r.Read())
+                        {
+                            completed = r.GetInt32("completed_tasks");
+                            total = r.GetInt32("total_tasks");
+                        }
+                    }
+                }
+
+                decimal foodTotal = 0, transTotal = 0, othersTotal = 0;
+                DateTime? foodDate = null, transDate = null, othersDate = null;
+                string expFood = @"SELECT COALESCE(SUM(cost),0) total, MAX(date_added) last_date FROM expenses 
+                                   WHERE student_id=@id AND category='Food' AND date_added BETWEEN @start AND @end";
+                using (var cmdFood = new MySqlCommand(expFood, conn))
+                {
+                    cmdFood.Parameters.AddWithValue("@id", studentId);
+                    cmdFood.Parameters.AddWithValue("@start", ws);
+                    cmdFood.Parameters.AddWithValue("@end", we);
+                    using (var r = cmdFood.ExecuteReader())
+                    {
+                        if (r.Read())
+                        {
+                            foodTotal = r.IsDBNull("total") ? 0 : r.GetDecimal("total");
+                            if (!r.IsDBNull("last_date")) foodDate = r.GetDateTime("last_date");
+                        }
+                    }
+                }
+
+                string expTrans = @"SELECT COALESCE(SUM(cost),0) total, MAX(date_added) last_date FROM expenses 
+                                    WHERE student_id=@id AND category='Transportation' AND date_added BETWEEN @start AND @end";
+                using (var cmdTrans = new MySqlCommand(expTrans, conn))
+                {
+                    cmdTrans.Parameters.AddWithValue("@id", studentId);
+                    cmdTrans.Parameters.AddWithValue("@start", ws);
+                    cmdTrans.Parameters.AddWithValue("@end", we);
+                    using (var r = cmdTrans.ExecuteReader())
+                    {
+                        if (r.Read())
+                        {
+                            transTotal = r.IsDBNull("total") ? 0 : r.GetDecimal("total");
+                            if (!r.IsDBNull("last_date")) transDate = r.GetDateTime("last_date");
+                        }
+                    }
+                }
+
+                string expOthers = @"SELECT COALESCE(SUM(cost),0) total, MAX(date_added) last_date FROM expenses 
+                                     WHERE student_id=@id AND category='Others' AND date_added BETWEEN @start AND @end";
+                using (var cmdOthers = new MySqlCommand(expOthers, conn))
+                {
+                    cmdOthers.Parameters.AddWithValue("@id", studentId);
+                    cmdOthers.Parameters.AddWithValue("@start", ws);
+                    cmdOthers.Parameters.AddWithValue("@end", we);
+                    using (var r = cmdOthers.ExecuteReader())
+                    {
+                        if (r.Read())
+                        {
+                            othersTotal = r.IsDBNull("total") ? 0 : r.GetDecimal("total");
+                            if (!r.IsDBNull("last_date")) othersDate = r.GetDateTime("last_date");
+                        }
+                    }
+                }
+
+                decimal totalBudget = SumBudget(ws, we);
+                decimal totalBalance = SumBalance(ws, we);
+
+                string insert = @"INSERT INTO weekly_records (
+                                    student_id, week_start_date, week_end_date, completed_tasks, total_tasks,
+                                    food_total, food_last_date, transportation_total, transportation_last_date,
+                                    others_total, others_last_date, total_budget, total_balance, budget_last_date)
+                                  VALUES (
+                                    @id, @ws, @we, @completed, @total,
+                                    @food, @foodDate, @trans, @transDate,
+                                    @others, @othersDate, @budget, @balance, NULL)";
+                using (var insertCmd = new MySqlCommand(insert, conn))
+                {
+                    insertCmd.Parameters.AddWithValue("@id", studentId);
+                    insertCmd.Parameters.AddWithValue("@ws", ws);
+                    insertCmd.Parameters.AddWithValue("@we", we);
+                    insertCmd.Parameters.AddWithValue("@completed", completed);
+                    insertCmd.Parameters.AddWithValue("@total", total);
+                    insertCmd.Parameters.AddWithValue("@food", foodTotal);
+                    insertCmd.Parameters.AddWithValue("@foodDate", (object?)foodDate ?? DBNull.Value);
+                    insertCmd.Parameters.AddWithValue("@trans", transTotal);
+                    insertCmd.Parameters.AddWithValue("@transDate", (object?)transDate ?? DBNull.Value);
+                    insertCmd.Parameters.AddWithValue("@others", othersTotal);
+                    insertCmd.Parameters.AddWithValue("@othersDate", (object?)othersDate ?? DBNull.Value);
+                    insertCmd.Parameters.AddWithValue("@budget", totalBudget);
+                    insertCmd.Parameters.AddWithValue("@balance", totalBalance);
+                    try { insertCmd.ExecuteNonQuery(); } catch { }
+                }
+            }
+        }
+
         private class WeeklyRecordRow
         {
             public string Week { get; set; } = string.Empty;
@@ -1765,31 +1917,74 @@ namespace SP_FMS
             using (var conn = DBHelper.GetConnection())
             {
                 conn.Open();
-                string q = @"SELECT week_start_date, week_end_date, completed_tasks, total_tasks,
-                                   food_total, food_last_date, transportation_total, transportation_last_date,
-                                   others_total, others_last_date, total_budget, total_balance, budget_last_date
+                string q = @"SELECT week_start_date, week_end_date
                               FROM weekly_records WHERE student_id=@id ORDER BY week_end_date DESC";
                 MySqlCommand cmd = new MySqlCommand(q, conn);
                 cmd.Parameters.AddWithValue("@id", studentId);
                 using (var r = cmd.ExecuteReader())
                 {
+                    List<(DateTime ws, DateTime we)> ranges = new List<(DateTime, DateTime)>();
                     while (r.Read())
                     {
-                        DateTime ws = r.GetDateTime("week_start_date");
-                        DateTime we = r.GetDateTime("week_end_date");
+                        ranges.Add((r.GetDateTime("week_start_date"), r.GetDateTime("week_end_date")));
+                    }
+                    r.Close();
 
-                        int completed = r.GetInt32("completed_tasks");
-                        int total = r.GetInt32("total_tasks");
-                        decimal food = r.GetDecimal("food_total");
-                        decimal trans = r.GetDecimal("transportation_total");
-                        decimal others = r.GetDecimal("others_total");
+                    foreach (var (ws, we) in ranges)
+                    {
+                        // Live recompute totals for this week range
+                        int completed = 0;
+                        int total = 0;
+                        decimal food = 0, trans = 0, others = 0;
+
+                        // Completed tasks
+                        using (var c1 = new MySqlCommand("SELECT COUNT(*) FROM todo_tasks WHERE student_id=@id AND is_completed=1 AND completion_date BETWEEN @ws AND @we", conn))
+                        {
+                            c1.Parameters.AddWithValue("@id", studentId);
+                            c1.Parameters.AddWithValue("@ws", ws);
+                            c1.Parameters.AddWithValue("@we", we);
+                            completed = Convert.ToInt32(c1.ExecuteScalar());
+                        }
+
+                        // Total tasks created in range
+                        using (var c2 = new MySqlCommand("SELECT COUNT(*) FROM todo_tasks WHERE student_id=@id AND created_date BETWEEN @ws AND @we", conn))
+                        {
+                            c2.Parameters.AddWithValue("@id", studentId);
+                            c2.Parameters.AddWithValue("@ws", ws);
+                            c2.Parameters.AddWithValue("@we", we);
+                            total = Convert.ToInt32(c2.ExecuteScalar());
+                        }
+
+                        // Expenses per category
+                        using (var cFood = new MySqlCommand("SELECT COALESCE(SUM(cost),0) FROM expenses WHERE student_id=@id AND category='Food' AND date_added BETWEEN @ws AND @we", conn))
+                        {
+                            cFood.Parameters.AddWithValue("@id", studentId);
+                            cFood.Parameters.AddWithValue("@ws", ws);
+                            cFood.Parameters.AddWithValue("@we", we);
+                            object res = cFood.ExecuteScalar();
+                            food = res == null || res == DBNull.Value ? 0 : Convert.ToDecimal(res);
+                        }
+
+                        using (var cTrans = new MySqlCommand("SELECT COALESCE(SUM(cost),0) FROM expenses WHERE student_id=@id AND category='Transportation' AND date_added BETWEEN @ws AND @we", conn))
+                        {
+                            cTrans.Parameters.AddWithValue("@id", studentId);
+                            cTrans.Parameters.AddWithValue("@ws", ws);
+                            cTrans.Parameters.AddWithValue("@we", we);
+                            object res = cTrans.ExecuteScalar();
+                            trans = res == null || res == DBNull.Value ? 0 : Convert.ToDecimal(res);
+                        }
+
+                        using (var cOthers = new MySqlCommand("SELECT COALESCE(SUM(cost),0) FROM expenses WHERE student_id=@id AND category='Others' AND date_added BETWEEN @ws AND @we", conn))
+                        {
+                            cOthers.Parameters.AddWithValue("@id", studentId);
+                            cOthers.Parameters.AddWithValue("@ws", ws);
+                            cOthers.Parameters.AddWithValue("@we", we);
+                            object res = cOthers.ExecuteScalar();
+                            others = res == null || res == DBNull.Value ? 0 : Convert.ToDecimal(res);
+                        }
+
                         decimal budget = SumBudget(ws, we);
                         decimal balance = SumBalance(ws, we);
-
-                        DateTime? foodDate = r.IsDBNull(r.GetOrdinal("food_last_date")) ? null : r.GetDateTime("food_last_date");
-                        DateTime? transDate = r.IsDBNull(r.GetOrdinal("transportation_last_date")) ? null : r.GetDateTime("transportation_last_date");
-                        DateTime? othersDate = r.IsDBNull(r.GetOrdinal("others_last_date")) ? null : r.GetDateTime("others_last_date");
-                        DateTime? budgetDate = r.IsDBNull(r.GetOrdinal("budget_last_date")) ? null : r.GetDateTime("budget_last_date");
 
                         rows.Add(new WeeklyRecordRow
                         {
@@ -1842,6 +2037,11 @@ namespace SP_FMS
         {
             int daysSinceTuesday = ((int)date.DayOfWeek - (int)DayOfWeek.Tuesday + 7) % 7;
             return date.AddDays(-daysSinceTuesday);
+        }
+
+        private DateTime GetRollingStart(DateTime date)
+        {
+            return date.Date.AddDays(-6);
         }
     }
 }
