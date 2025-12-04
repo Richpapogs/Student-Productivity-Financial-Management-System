@@ -1955,6 +1955,25 @@ namespace SP_FMS
                             total = Convert.ToInt32(c2.ExecuteScalar());
                         }
 
+                        // Fallback to todo_progress snapshot if task dates are missing
+                        if (completed == 0 && total == 0)
+                        {
+                            using (var cProg = new MySqlCommand("SELECT completed_tasks, total_tasks FROM todo_progress WHERE student_id=@id AND date_recorded BETWEEN @ws AND @we ORDER BY date_recorded DESC LIMIT 1", conn))
+                            {
+                                cProg.Parameters.AddWithValue("@id", studentId);
+                                cProg.Parameters.AddWithValue("@ws", ws);
+                                cProg.Parameters.AddWithValue("@we", we);
+                                using (var rp = cProg.ExecuteReader())
+                                {
+                                    if (rp.Read())
+                                    {
+                                        completed = rp.GetInt32("completed_tasks");
+                                        total = rp.GetInt32("total_tasks");
+                                    }
+                                }
+                            }
+                        }
+
                         // Expenses per category
                         using (var cFood = new MySqlCommand("SELECT COALESCE(SUM(cost),0) FROM expenses WHERE student_id=@id AND category='Food' AND date_added BETWEEN @ws AND @we", conn))
                         {
